@@ -129,14 +129,17 @@ const storage = {
         const r = await window.storage.get(key);
         return r ? JSON.parse(r.value) : null;
       }
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
     } catch { return null; }
-    return null;
   },
   async set(key, value) {
     try {
       if (typeof window !== "undefined" && window.storage) {
         await window.storage.set(key, JSON.stringify(value));
+        return;
       }
+      localStorage.setItem(key, JSON.stringify(value));
     } catch {}
   },
 };
