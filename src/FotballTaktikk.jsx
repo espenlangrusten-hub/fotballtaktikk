@@ -5,6 +5,7 @@ import {
   Trophy, ClipboardList, Activity, Eye, EyeOff, ShieldCheck,
   UserCog, KeyRound, AlertCircle
 } from "lucide-react";
+import { supabase } from './supabase';
 
 /* ============================================================
    FOTBALL.TAKTIKK — v2
@@ -125,22 +126,29 @@ const roleGroup = (code) => POSITION_BY_CODE[code]?.group || "ATT";
 const storage = {
   async get(key) {
     try {
-      if (typeof window !== "undefined" && window.storage) {
-        const r = await window.storage.get(key);
-        return r ? JSON.parse(r.value) : null;
-      }
+      const { data, error } = await supabase
+        .from('app_data')
+        .select('value')
+        .eq('key', key)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) return data.value;
+    } catch {}
+    // fallback: localStorage
+    try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   },
   async set(key, value) {
     try {
-      if (typeof window !== "undefined" && window.storage) {
-        await window.storage.set(key, JSON.stringify(value));
-        return;
-      }
-      localStorage.setItem(key, JSON.stringify(value));
+      const { error } = await supabase
+        .from('app_data')
+        .upsert({ key, value });
+      if (error) throw error;
     } catch {}
+    // mirror to localStorage as offline cache
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
   },
 };
 
