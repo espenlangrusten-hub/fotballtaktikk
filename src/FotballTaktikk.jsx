@@ -763,6 +763,7 @@ function TacticsView({ team, user, db, setDB }) {
   useEffect(() => {
     if (!sidebarDrag) return;
     const onMove = (e) => {
+      e.preventDefault(); // prevent page scroll while dragging from sidebar
       const cx = e.clientX ?? e.touches?.[0]?.clientX;
       const cy = e.clientY ?? e.touches?.[0]?.clientY;
       setSidebarDrag(d => d ? { ...d, ghostX: cx, ghostY: cy } : null);
@@ -777,7 +778,8 @@ function TacticsView({ team, user, db, setDB }) {
       setSidebarDrag(null);
       setDropTarget(null);
     };
-    document.addEventListener("pointermove", onMove);
+    // passive: false lets us call preventDefault() to block scroll during drag
+    document.addEventListener("pointermove", onMove, { passive: false });
     document.addEventListener("pointerup", onUp);
     return () => {
       document.removeEventListener("pointermove", onMove);
@@ -972,7 +974,7 @@ function TacticsView({ team, user, db, setDB }) {
                   ? "bg-lime-400/10 border-lime-400/40"
                   : "bg-slate-900/80 border-slate-700 hover:border-slate-600"
                 } ${isDraggingThis ? "opacity-40 scale-95" : ""}`}
-                style={{ minWidth: 56 }}
+                style={{ minWidth: 56, touchAction: "none" }}
               >
                 <div className="w-9 h-9 rounded-full flex items-center justify-center font-mono text-sm font-bold border-2 bg-slate-950"
                   style={{ borderColor: onPitch ? "#84cc16" : "#475569", color: onPitch ? "#84cc16" : "#94a3b8" }}>
@@ -1003,6 +1005,13 @@ function TacticsView({ team, user, db, setDB }) {
 
           <div
             ref={pitchRef}
+            onPointerDown={(e) => {
+              // In arrow mode, tapping empty pitch area (not a slot) also starts an arrow
+              if (!write || mode !== "arrow" || drawingArrow || draggingSlot) return;
+              const { x, y } = pitchCoords(e.clientX, e.clientY);
+              setDrawingArrow({ slotId: null, fromX: x, fromY: y, toX: x, toY: y });
+              try { pitchRef.current.setPointerCapture(e.pointerId); } catch {}
+            }}
             onPointerMove={onPitchPointerMove}
             onPointerUp={onPitchPointerUp}
             onPointerLeave={onPitchPointerUp}
@@ -1014,19 +1023,22 @@ function TacticsView({ team, user, db, setDB }) {
             {/* Arrows SVG */}
             <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
               <defs>
-                <marker id="arrowhead" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#facc15" />
+                <marker id="arrowhead" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                  <path d="M 0 1 L 9 5 L 0 9 z" fill="#facc15" />
+                </marker>
+                <marker id="arrowhead-drawing" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                  <path d="M 0 1 L 9 5 L 0 9 z" fill="#fde047" />
                 </marker>
               </defs>
               {tactic.arrows.map(a => (
                 <line key={a.id} x1={a.fromX} y1={a.fromY} x2={a.toX} y2={a.toY}
-                  stroke="#facc15" strokeWidth="0.6" strokeDasharray="1.5 1"
+                  stroke="#facc15" strokeWidth="1.5" strokeDasharray="3 2"
                   markerEnd="url(#arrowhead)" vectorEffect="non-scaling-stroke" />
               ))}
               {drawingArrow && (
                 <line x1={drawingArrow.fromX} y1={drawingArrow.fromY} x2={drawingArrow.toX} y2={drawingArrow.toY}
-                  stroke="#fde047" strokeWidth="0.6" strokeDasharray="1.5 1" opacity="0.9"
-                  markerEnd="url(#arrowhead)" vectorEffect="non-scaling-stroke" />
+                  stroke="#fde047" strokeWidth="1.5" strokeDasharray="3 2" opacity="0.85"
+                  markerEnd="url(#arrowhead-drawing)" vectorEffect="non-scaling-stroke" />
               )}
             </svg>
 
@@ -1055,6 +1067,7 @@ function TacticsView({ team, user, db, setDB }) {
                   style={{
                     left: `${slot.x}%`, top: `${slot.y}%`,
                     transform: "translate(-50%,-50%)",
+                    touchAction: "none",
                     cursor: !write ? "default" : mode === "move" ? (isDragging ? "grabbing" : "grab") : "crosshair",
                     zIndex: isDragging ? 50 : 10,
                   }}
@@ -1122,6 +1135,7 @@ function TacticsView({ team, user, db, setDB }) {
                   <div
                     key={p.id}
                     onPointerDown={(e) => startSidebarDrag(e, p)}
+                    style={{ touchAction: "none" }}
                     className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg border transition-all no-select ${
                       write ? "cursor-grab active:cursor-grabbing" : "cursor-default"
                     } ${onPitch
