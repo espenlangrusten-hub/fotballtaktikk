@@ -24,8 +24,11 @@ const GlobalStyles = () => (
     body { font-family: 'Manrope', sans-serif; background: #020617; }
     .pitch-grad {
       background:
-        repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 4%, transparent 4% 8%),
-        linear-gradient(180deg, #0d7038 0%, #0a5a2c 50%, #0d7038 100%);
+        repeating-linear-gradient(180deg,
+          rgba(0,0,0,0.08) 0% 9%,
+          transparent 9% 18%
+        ),
+        linear-gradient(180deg, #3a9e48 0%, #2e8a3c 50%, #3a9e48 100%);
     }
     .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(132, 204, 22, 0.3); border-radius: 3px; }
@@ -1023,7 +1026,7 @@ function TacticsView({ team, user, db, setDB }) {
             onPointerMove={onPitchPointerMove}
             onPointerUp={onPitchPointerUp}
             onPointerLeave={onPitchPointerUp}
-            className="relative w-full pitch-grad shadow-2xl no-select border-2 border-slate-800 rounded-2xl overflow-hidden"
+            className="relative w-full pitch-grad shadow-2xl no-select border-2 border-white/20 rounded-2xl overflow-hidden"
             style={{ aspectRatio: "68 / 100", touchAction: "none" }}
           >
             <PitchMarkings />
@@ -1080,35 +1083,52 @@ function TacticsView({ team, user, db, setDB }) {
                     zIndex: isDragging ? 50 : 10,
                   }}
                 >
-                  <div className="flex flex-col items-center gap-1 pointer-events-none">
-                    {/* Drop target halo ring */}
+                  <div className={`flex flex-col items-center pointer-events-none transition-transform ${isDragging ? "scale-110" : isDropTarget ? "scale-105" : ""}`} style={{ gap: 3 }}>
+                    {/* Drop target ring */}
                     {isDropTarget && (
-                      <div className="absolute inset-0 flex items-center justify-center" style={{ top: "-4px" }}>
-                        <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 border-lime-400 animate-ping opacity-60" />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full border-2 border-white animate-ping opacity-50" />
                       </div>
                     )}
+                    {/* Jersey circle */}
                     <div
-                      className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center font-bold shadow-xl border-[3px] transition-transform ${
-                        isDragging ? "scale-110" : isDropTarget ? "scale-105" : ""
-                      }`}
+                      className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold text-white shadow-lg"
                       style={{
-                        backgroundColor: player ? "#0f172a" : "rgba(15,23,42,0.85)",
-                        borderColor: isDropTarget ? "#84cc16" : (posMeta?.color || "#84cc16"),
-                        color: posMeta?.color || "#84cc16",
-                        boxShadow: isDropTarget
-                          ? "0 0 0 3px rgba(132,204,22,0.4), 0 6px 18px rgba(0,0,0,0.5)"
-                          : "0 6px 18px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.4)",
+                        background: player
+                          ? "linear-gradient(160deg, #c0392b 0%, #96281b 100%)"
+                          : "rgba(0,0,0,0.35)",
+                        border: isDropTarget
+                          ? "2.5px solid #fff"
+                          : player
+                            ? "2.5px solid rgba(255,255,255,0.5)"
+                            : `2px dashed ${posMeta?.color || "#fff"}80`,
+                        boxShadow: "0 3px 10px rgba(0,0,0,0.45)",
+                        color: player ? "#fff" : (posMeta?.color || "#fff"),
                       }}
                     >
-                      {player
-                        ? <span className="font-mono text-sm">{player.number ?? "?"}</span>
-                        : <span className="font-mono text-[10px]">{slot.role}</span>}
+                      <span className="font-mono text-sm leading-none">
+                        {player ? (player.number ?? "?") : slot.role}
+                      </span>
                     </div>
-                    {player && (
-                      <div className="text-[10px] sm:text-xs font-semibold text-white bg-slate-950/85 px-1.5 py-0.5 rounded whitespace-nowrap max-w-[80px] truncate">
-                        {player.name.split(" ")[0]}
+                    {/* FM-style info card */}
+                    <div
+                      className="rounded px-1.5 py-0.5 text-center shadow-md"
+                      style={{
+                        background: "rgba(10,14,20,0.88)",
+                        border: `1px solid ${posMeta?.color || "#84cc16"}55`,
+                        minWidth: 58,
+                        maxWidth: 80,
+                      }}
+                    >
+                      <div className="text-[9px] font-bold tracking-wider leading-tight" style={{ color: posMeta?.color || "#84cc16" }}>
+                        {slot.role}
                       </div>
-                    )}
+                      <div className="text-[10px] text-white font-semibold leading-tight truncate">
+                        {player
+                          ? (player.name.split(" ").slice(-1)[0])
+                          : <span className="text-white/30">—</span>}
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
@@ -1296,20 +1316,20 @@ function FormationPreview({ formation }) {
 function PitchMarkings() {
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 150" preserveAspectRatio="none">
-      <rect x="1.5" y="1.5" width="97" height="147" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
-      <line x1="1.5" y1="75" x2="98.5" y2="75" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
-      <circle cx="50" cy="75" r="9" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
+      <rect x="1.5" y="1.5" width="97" height="147" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
+      <line x1="1.5" y1="75" x2="98.5" y2="75" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
+      <circle cx="50" cy="75" r="9" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
       <circle cx="50" cy="75" r="0.6" fill="white" fillOpacity="0.8" />
-      <rect x="22" y="1.5" width="56" height="20" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
-      <rect x="35" y="1.5" width="30" height="7" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
+      <rect x="22" y="1.5" width="56" height="20" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
+      <rect x="35" y="1.5" width="30" height="7" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
       <circle cx="50" cy="14" r="0.6" fill="white" fillOpacity="0.8" />
-      <path d="M 40 21.5 A 9 9 0 0 0 60 21.5" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
-      <rect x="22" y="128.5" width="56" height="20" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
-      <rect x="35" y="141.5" width="30" height="7" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
+      <path d="M 40 21.5 A 9 9 0 0 0 60 21.5" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
+      <rect x="22" y="128.5" width="56" height="20" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
+      <rect x="35" y="141.5" width="30" height="7" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
       <circle cx="50" cy="136" r="0.6" fill="white" fillOpacity="0.8" />
-      <path d="M 40 128.5 A 9 9 0 0 1 60 128.5" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
+      <path d="M 40 128.5 A 9 9 0 0 1 60 128.5" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
       {[[1.5,1.5],[98.5,1.5],[1.5,148.5],[98.5,148.5]].map(([cx,cy],i)=>(
-        <circle key={i} cx={cx} cy={cy} r="1.5" fill="none" stroke="white" strokeOpacity="0.7" strokeWidth="0.4" />
+        <circle key={i} cx={cx} cy={cy} r="1.5" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
       ))}
     </svg>
   );
