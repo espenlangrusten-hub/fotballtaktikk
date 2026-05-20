@@ -21,7 +21,7 @@ const GlobalStyles = () => (
     .font-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
     .font-body { font-family: 'Manrope', sans-serif; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
-    body { font-family: 'Manrope', sans-serif; background: #020617; }
+    body { font-family: 'Manrope', sans-serif; background: #f1f5f9; }
     .pitch-grad {
       background:
         repeating-linear-gradient(180deg,
@@ -401,8 +401,8 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
       <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
         <div>
           <div className="text-xs font-semibold text-lime-400 tracking-widest mb-2">KLUBBSIDE</div>
-          <h1 className="font-display text-4xl sm:text-5xl text-white">LAG OVERSIKT</h1>
-          <p className="text-slate-400 mt-2">
+          <h1 className="font-display text-4xl sm:text-5xl text-gray-900">LAG OVERSIKT</h1>
+          <p className="text-gray-500 mt-2">
             {isAdminUser ? "Administrer alle 11-er lag i klubben" : `${teams.length} lag du har tilgang til`}
           </p>
         </div>
@@ -421,12 +421,12 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
       </div>
 
       {teams.length === 0 ? (
-        <div className="border-2 border-dashed border-slate-800 rounded-2xl p-16 text-center">
-          <Shield className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-          <h3 className="font-display text-2xl text-slate-300 mb-2">
+        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center">
+          <Shield className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="font-display text-2xl text-gray-500 mb-2">
             {isAdminUser ? "INGEN LAG ENNÅ" : "INGEN TILGANG TIL LAG"}
           </h3>
-          <p className="text-slate-500 text-sm mb-6">
+          <p className="text-gray-400 text-sm mb-6">
             {isAdminUser ? "Opprett ditt første 11-er lag" : "Ta kontakt med admin for tilgang"}
           </p>
           {isAdminUser && (
@@ -476,11 +476,11 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
 
 function StatCard({ label, value, icon }) {
   return (
-    <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-4 sm:p-5">
-      <div className="flex items-center gap-2 text-slate-500 text-xs font-semibold tracking-wider mb-2">
+    <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold tracking-wider mb-2">
         {icon} {label.toUpperCase()}
       </div>
-      <div className="font-display text-3xl sm:text-4xl text-white">{value}</div>
+      <div className="font-display text-3xl sm:text-4xl text-gray-900">{value}</div>
     </div>
   );
 }
@@ -489,35 +489,195 @@ function TeamCard({ team, user, onClick }) {
   const write = canWrite(user, team.id);
   return (
     <button onClick={onClick}
-      className="group text-left bg-slate-900/50 hover:bg-slate-900 border border-slate-800 hover:border-lime-400/40 rounded-2xl p-5 transition-all">
+      className="group text-left bg-white hover:bg-gray-50 border border-gray-200 hover:border-lime-400/60 rounded-2xl p-5 transition-all shadow-sm">
       <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-lime-400/20 to-emerald-500/20 border border-lime-400/30 flex items-center justify-center">
-          <Shield className="w-6 h-6 text-lime-400" />
+        <div className="w-12 h-12 rounded-xl bg-lime-50 border border-lime-200 flex items-center justify-center">
+          <Shield className="w-6 h-6 text-lime-600" />
         </div>
-        <div className="flex items-center gap-1.5">
-          <PermBadge permission={write ? "write" : "read"} />
-        </div>
+        <PermBadge permission={write ? "write" : "read"} />
       </div>
-      <h3 className="font-display text-xl text-white group-hover:text-lime-400 transition-colors">
+      <h3 className="font-display text-xl text-gray-900 group-hover:text-lime-600 transition-colors">
         {team.name}{team.variant ? ` ${team.variant}` : ""}
       </h3>
-      <div className="text-xs text-slate-500 mt-1">Årskull {team.ageYear} · {team.format}</div>
-      <div className="flex gap-4 mt-4 pt-4 border-t border-slate-800">
+      <div className="text-xs text-gray-400 mt-1">Årskull {team.ageYear} · {team.format}</div>
+      <div className="flex gap-4 mt-4 pt-4 border-t border-gray-100">
         <div>
-          <div className="text-xs text-slate-500">Spillere</div>
-          <div className="font-display text-lg text-white">{team.players.length}</div>
+          <div className="text-xs text-gray-400">Spillere</div>
+          <div className="font-display text-lg text-gray-900">{team.players.length}</div>
         </div>
         <div>
-          <div className="text-xs text-slate-500">Taktikker</div>
-          <div className="font-display text-lg text-white">{team.tactics?.length || 0}</div>
+          <div className="text-xs text-gray-400">Taktikker</div>
+          <div className="font-display text-lg text-gray-900">{team.tactics?.length || 0}</div>
         </div>
       </div>
     </button>
   );
 }
 
-// ---------- TEAM VIEW ----------
-function TeamView({ team, user, db, setDB, onOpenTactics }) {
+// ---------- TEAM VIEW (tabbed) ----------
+function TeamView({ team, user, db, setDB }) {
+  const [tab, setTab] = useState("oversikt");
+  const liveTeam = db.teams.find(t => t.id === team.id) || team;
+  const write = canWrite(user, liveTeam.id);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* White header section with team name + tab bar */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 pb-0">
+          {!write && <ReadOnlyBanner />}
+          <div className="mb-4">
+            <div className="text-xs font-bold text-lime-600 tracking-widest mb-1 uppercase">{liveTeam.format} · Årskull {liveTeam.ageYear}</div>
+            <h1 className="font-display text-4xl sm:text-5xl text-gray-900">{liveTeam.name}{liveTeam.variant ? ` ${liveTeam.variant}` : ""}</h1>
+          </div>
+          {/* Tab bar flush with bottom border */}
+          <div className="flex -mb-px">
+            {[["oversikt","Oversikt"],["spillere","Spillere"],["taktikk","Taktikk"]].map(([key,label]) => (
+              <button key={key} onClick={() => setTab(key)}
+                className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                  tab === key ? "border-lime-500 text-lime-600" : "border-transparent text-gray-500 hover:text-gray-800"
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tab content */}
+      {tab === "oversikt" && <TeamOverview team={liveTeam} user={user} db={db} setDB={setDB} setTab={setTab} />}
+      {tab === "spillere" && <TeamPlayers team={liveTeam} user={user} db={db} setDB={setDB} />}
+      {tab === "taktikk" && (
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
+          <TacticsView team={liveTeam} user={user} db={db} setDB={setDB} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TeamOverview({ team, user, db, setDB, setTab }) {
+  const write = canWrite(user, team.id);
+  const lastTactic = (team.tactics || []).slice(-1)[0];
+  const sortedPlayers = [...team.players].sort((a,b) => (a.number||999)-(b.number||999));
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold tracking-wider mb-2"><Users className="w-4 h-4" />SPILLERE</div>
+          <div className="font-display text-4xl text-gray-900">{team.players.length}</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold tracking-wider mb-2"><ClipboardList className="w-4 h-4" />TAKTIKKER</div>
+          <div className="font-display text-4xl text-gray-900">{(team.tactics||[]).length}</div>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold tracking-wider mb-2"><Target className="w-4 h-4" />FORMASJON</div>
+          <div className="font-display text-2xl text-gray-900">{lastTactic?.formation || "—"}</div>
+        </div>
+      </div>
+
+      {/* Mini tactic board */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+          <div>
+            <div className="font-semibold text-gray-900 text-sm">{lastTactic ? lastTactic.name : "Ingen taktikk lagret"}</div>
+            {lastTactic && <div className="text-xs text-gray-400">{lastTactic.formation}</div>}
+          </div>
+          <button onClick={() => setTab("taktikk")} className="text-xs font-semibold text-lime-600 hover:text-lime-700">Åpne taktikk →</button>
+        </div>
+        {lastTactic
+          ? <MiniTacticBoard tactic={lastTactic} players={team.players} />
+          : <div className="h-36 flex items-center justify-center text-gray-400 text-sm">Ingen taktikk ennå</div>
+        }
+      </div>
+
+      {/* Player preview list */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
+          <div className="font-semibold text-gray-900 text-sm">Spillere ({team.players.length})</div>
+          <button onClick={() => setTab("spillere")} className="text-xs font-semibold text-lime-600 hover:text-lime-700">Se alle →</button>
+        </div>
+        {sortedPlayers.length === 0 ? (
+          <div className="px-4 py-6 text-center text-gray-400 text-sm">Ingen spillere registrert</div>
+        ) : (
+          sortedPlayers.slice(0, 6).map(p => {
+            const posMeta = POSITION_BY_CODE[p.positions[0]];
+            return (
+              <div key={p.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-gray-50 last:border-0">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold border-2 bg-gray-50 flex-shrink-0"
+                  style={{ borderColor: posMeta?.color || "#84cc16", color: posMeta?.color || "#84cc16" }}>
+                  {p.number || "?"}
+                </div>
+                <div className="font-medium text-gray-900 text-sm flex-1">{p.name}</div>
+                <div className="flex gap-1">
+                  {p.positions.slice(0,3).map(c => {
+                    const pm = POSITION_BY_CODE[c];
+                    return pm ? (
+                      <span key={c} className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                        style={{ color: pm.color, backgroundColor: pm.color + "20" }}>{c}</span>
+                    ) : null;
+                  })}
+                </div>
+              </div>
+            );
+          })
+        )}
+        {sortedPlayers.length > 6 && (
+          <button onClick={() => setTab("spillere")} className="w-full px-4 py-2.5 text-xs text-gray-400 hover:text-lime-600 text-center">
+            + {sortedPlayers.length - 6} flere spillere
+          </button>
+        )}
+      </div>
+
+      {/* Quick actions */}
+      {write && (
+        <div className="flex gap-3">
+          <button onClick={() => setTab("spillere")} className="flex-1 py-3 rounded-xl bg-white border border-gray-200 text-gray-700 font-semibold text-sm hover:border-lime-400 hover:text-lime-600 shadow-sm flex items-center justify-center gap-2">
+            <Users className="w-4 h-4" /> Administrer spillere
+          </button>
+          <button onClick={() => setTab("taktikk")} className="flex-1 py-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-bold text-sm shadow-sm flex items-center justify-center gap-2">
+            <Target className="w-4 h-4" /> Taktikkbrett
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniTacticBoard({ tactic, players }) {
+  const playerById = (id) => players.find(p => p.id === id);
+  return (
+    <div className="relative w-full pitch-grad" style={{ aspectRatio: "68 / 60", overflow: "hidden" }}>
+      {tactic.slots.map(slot => {
+        const player = playerById(slot.playerId);
+        const posMeta = POSITION_BY_CODE[slot.role];
+        return (
+          <div key={slot.id} className="absolute flex flex-col items-center pointer-events-none"
+            style={{ left: `${slot.x}%`, top: `${slot.y}%`, transform: "translate(-50%,-50%)", gap: 2 }}>
+            <div className="w-7 h-7 rounded-full flex items-center justify-center text-white shadow font-bold"
+              style={{
+                background: player ? "linear-gradient(160deg,#c0392b 0%,#96281b 100%)" : "rgba(0,0,0,0.3)",
+                border: `2px solid ${posMeta?.color || "rgba(255,255,255,0.4)"}80`,
+                fontSize: 9,
+              }}>
+              {player ? (player.number ?? "?") : <span style={{ color: posMeta?.color, fontSize: 8 }}>{slot.role}</span>}
+            </div>
+            {player && (
+              <div style={{ fontSize: 8, color: "#fff", background: "rgba(0,0,0,0.65)", padding: "1px 3px", borderRadius: 3, whiteSpace: "nowrap", maxWidth: 44, overflow: "hidden", textOverflow: "ellipsis" }}>
+                {player.name.split(" ").pop()}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function TeamPlayers({ team, user, db, setDB }) {
   const [showAdd, setShowAdd] = useState(false);
   const write = canWrite(user, team.id);
 
@@ -539,37 +699,23 @@ function TeamView({ team, user, db, setDB, onOpenTactics }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      {!write && <ReadOnlyBanner />}
-      <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
-        <div>
-          <div className="text-xs font-semibold text-lime-400 tracking-widest mb-2">LAG · {team.format}</div>
-          <h1 className="font-display text-4xl sm:text-5xl text-white">
-            {team.name}{team.variant ? ` ${team.variant}` : ""}
-          </h1>
-          <p className="text-slate-400 mt-2">Årskull {team.ageYear} · {team.players.length} spillere</p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={onOpenTactics}
-            className="px-4 py-2.5 rounded-xl border border-slate-700 hover:border-lime-400 text-white text-sm flex items-center gap-2 bg-slate-900">
-            <Target className="w-4 h-4" /> Taktikkbrett
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+      {write && (
+        <div className="flex justify-end mb-4">
+          <button onClick={() => setShowAdd(true)}
+            className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-semibold text-sm flex items-center gap-2 shadow-lg shadow-lime-400/20">
+            <Plus className="w-4 h-4" /> Ny spiller
           </button>
-          {write && (
-            <button onClick={() => setShowAdd(true)}
-              className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-semibold text-sm flex items-center gap-2 shadow-lg shadow-lime-400/20">
-              <Plus className="w-4 h-4" /> Ny spiller
-            </button>
-          )}
         </div>
-      </div>
+      )}
 
       {team.players.length === 0 ? (
-        <div className="border-2 border-dashed border-slate-800 rounded-2xl p-16 text-center">
-          <Users className="w-12 h-12 text-slate-700 mx-auto mb-4" />
-          <h3 className="font-display text-2xl text-slate-300 mb-2">INGEN SPILLERE</h3>
+        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center">
+          <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="font-display text-2xl text-gray-500 mb-2">INGEN SPILLERE</h3>
           {write && (
             <>
-              <p className="text-slate-500 text-sm mb-6">Legg til spillere for å bygge laget</p>
+              <p className="text-gray-400 text-sm mb-6">Legg til spillere for å bygge laget</p>
               <button onClick={() => setShowAdd(true)} className="px-5 py-2.5 rounded-xl bg-lime-400 text-slate-950 font-semibold text-sm inline-flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Legg til spiller
               </button>
@@ -577,8 +723,8 @@ function TeamView({ team, user, db, setDB, onOpenTactics }) {
           )}
         </div>
       ) : (
-        <div className="bg-slate-900/40 border border-slate-800 rounded-2xl overflow-hidden">
-          <div className="grid grid-cols-12 gap-3 px-5 py-3 bg-slate-950/60 border-b border-slate-800 text-xs font-semibold text-slate-400 tracking-wider">
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
+          <div className="grid grid-cols-12 gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 tracking-wider">
             <div className="col-span-1">NR</div>
             <div className="col-span-4">NAVN</div>
             <div className="col-span-6">POSISJONER</div>
@@ -733,6 +879,7 @@ function TacticsView({ team, user, db, setDB }) {
   const [dropTarget, setDropTarget] = useState(null);
 
   const pitchRef = useRef(null);
+  const pendingDrag = useRef({ timer: null, slotId: null, pointerId: null, startX: 0, startY: 0, active: false });
 
   const pitchCoords = useCallback((clientX, clientY) => {
     const r = pitchRef.current.getBoundingClientRect();
@@ -805,15 +952,25 @@ function TacticsView({ team, user, db, setDB }) {
     setSidebarDrag({ playerId: player.id, ghostX: e.clientX, ghostY: e.clientY });
   };
 
-  // ---- pitch slot drag (capture pointer on PITCH to prevent scroll) ----
+  // ---- pitch slot drag (long-press 400ms before dragging activates) ----
   const onSlotPointerDown = (e, slot) => {
     if (!write) return;
     e.stopPropagation();
-    e.preventDefault(); // <-- prevents page scroll on touch
+    e.preventDefault();
     if (mode === "move") {
-      setDraggingSlot(slot.id);
-      // Capture on the PITCH element so onPointerMove fires there, not on the slot
+      // Capture immediately so pointermove goes to the pitch
       try { pitchRef.current.setPointerCapture(e.pointerId); } catch {}
+      pendingDrag.current = {
+        timer: setTimeout(() => {
+          pendingDrag.current.active = true;
+          setDraggingSlot(slot.id);
+        }, 380),
+        slotId: slot.id,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        active: false,
+      };
     } else if (mode === "arrow") {
       const { x, y } = pitchCoords(e.clientX, e.clientY);
       setDrawingArrow({ slotId: slot.id, fromX: slot.x, fromY: slot.y, toX: x, toY: y });
@@ -822,6 +979,16 @@ function TacticsView({ team, user, db, setDB }) {
   };
 
   const onPitchPointerMove = (e) => {
+    // Cancel pending long press if finger moved more than 8px
+    if (pendingDrag.current.timer && !pendingDrag.current.active) {
+      const dx = Math.abs(e.clientX - pendingDrag.current.startX);
+      const dy = Math.abs(e.clientY - pendingDrag.current.startY);
+      if (dx > 8 || dy > 8) {
+        clearTimeout(pendingDrag.current.timer);
+        pendingDrag.current.timer = null;
+      }
+      return;
+    }
     if (draggingSlot) {
       const { x, y } = pitchCoords(e.clientX, e.clientY);
       setTactic(t => ({ ...t, slots: t.slots.map(s => s.id === draggingSlot ? { ...s, x, y } : s) }));
@@ -832,6 +999,10 @@ function TacticsView({ team, user, db, setDB }) {
   };
 
   const onPitchPointerUp = () => {
+    if (pendingDrag.current.timer) {
+      clearTimeout(pendingDrag.current.timer);
+      pendingDrag.current = { timer: null, slotId: null, pointerId: null, startX: 0, startY: 0, active: false };
+    }
     if (draggingSlot) setDraggingSlot(null);
     if (drawingArrow) {
       const dist = Math.hypot(drawingArrow.toX - drawingArrow.fromX, drawingArrow.toY - drawingArrow.fromY);
@@ -902,7 +1073,6 @@ function TacticsView({ team, user, db, setDB }) {
     const next = { ...db, teams: db.teams.map(t => t.id === team.id ? { ...t, tactics: newList } : t) };
     setDB(next); await storage.set(DB_KEY, next);
     setTactic(cleaned);
-    alert("Taktikk lagret");
   };
 
   const deleteTactic = async (tid) => {
@@ -933,19 +1103,19 @@ function TacticsView({ team, user, db, setDB }) {
           <input value={tactic.name}
             onChange={e => write && setTactic({ ...tactic, name: e.target.value })}
             disabled={!write}
-            className="bg-slate-900/60 border border-slate-800 px-3 py-2 rounded-lg text-white font-display text-lg outline-none focus:border-lime-400/50 w-40 sm:w-56 disabled:opacity-70" />
+            className="bg-white border border-gray-200 px-3 py-2 rounded-lg text-gray-900 font-display text-lg outline-none focus:border-lime-400/50 w-40 sm:w-56 disabled:opacity-70" />
           <select
             value={tactic.formation}
             onChange={e => write && switchFormation(e.target.value)}
             disabled={!write}
-            className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-lime-400 font-display text-base outline-none focus:border-lime-400/50 disabled:opacity-50 cursor-pointer"
+            className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-lime-600 font-display text-base outline-none focus:border-lime-400/50 disabled:opacity-50 cursor-pointer"
           >
             {Object.keys(FORMATIONS).map(key => (
               <option key={key} value={key}>{key}</option>
             ))}
           </select>
           <button onClick={() => setShowSaved(true)}
-            className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-sm flex items-center gap-2">
+            className="px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-sm flex items-center gap-2">
             <ClipboardList className="w-4 h-4" />
             <span className="hidden sm:inline">Lagrede</span>
             <span className="font-mono text-xs text-lime-400">{(team.tactics || []).length}</span>
@@ -954,7 +1124,7 @@ function TacticsView({ team, user, db, setDB }) {
         {write && (
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={autoAssign}
-              className="px-3 py-2 rounded-lg border border-slate-700 hover:border-lime-400/50 text-white text-sm flex items-center gap-2">
+              className="px-3 py-2 rounded-lg border border-gray-200 hover:border-lime-400/50 text-gray-700 text-sm flex items-center gap-2">
               <Activity className="w-4 h-4" /> Auto-tilord
             </button>
             <button onClick={saveTactic}
@@ -970,8 +1140,8 @@ function TacticsView({ team, user, db, setDB }) {
       {/* Mobile horizontal strip */}
       <div className="lg:hidden mb-3">
         <div className="flex items-center gap-1.5 mb-2">
-          <span className="text-xs font-semibold text-slate-400 tracking-wider">STALL</span>
-          {write && <span className="text-[10px] text-lime-400">— dra ned på banen</span>}
+          <span className="text-xs font-semibold text-gray-500 tracking-wider">STALL</span>
+          {write && <span className="text-[10px] text-lime-600">— dra ned på banen</span>}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
           {sortedPlayers.length === 0 && (
@@ -1010,7 +1180,7 @@ function TacticsView({ team, user, db, setDB }) {
         {/* ===== PITCH ===== */}
         <div>
           {write && (
-            <div className="flex items-center gap-2 mb-3 p-1 bg-slate-900/60 border border-slate-800 rounded-xl w-fit">
+            <div className="flex items-center gap-2 mb-3 p-1 bg-white border border-gray-200 rounded-xl w-fit">
               <ModeBtn active={mode === "move"} onClick={() => setMode("move")} icon={<Move className="w-4 h-4" />}>Flytt</ModeBtn>
               <ModeBtn active={mode === "arrow"} onClick={() => setMode("arrow")} icon={<ArrowRight className="w-4 h-4" />}>Piler</ModeBtn>
               {tactic.arrows.length > 0 && (
@@ -1143,7 +1313,7 @@ function TacticsView({ team, user, db, setDB }) {
           {write && (
             <div className="text-xs text-slate-500 mt-2 text-center">
               {mode === "move"
-                ? "Dra spillerbrikker fritt · Dra fra stallen ned på banen · Trykk for tilordne"
+                ? "Hold fingeren på en spiller (0.4s) for å flytte · Dra fra stallen til banen · Trykk for å tilordne"
                 : "Dra fra en spiller for å tegne et løp"}
             </div>
           )}
@@ -1151,10 +1321,10 @@ function TacticsView({ team, user, db, setDB }) {
 
         {/* ===== DESKTOP SIDEBAR ===== */}
         <div className="hidden lg:flex flex-col gap-3">
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3">
-            <div className="text-xs font-semibold text-slate-400 tracking-wider mb-2 flex items-center justify-between">
+          <div className="bg-white border border-gray-200 rounded-xl p-3">
+            <div className="text-xs font-semibold text-gray-500 tracking-wider mb-2 flex items-center justify-between">
               <span>SPILLERSTALL ({team.players.length})</span>
-              {write && <span className="text-lime-400 font-normal">dra inn på banen</span>}
+              {write && <span className="text-lime-600 font-normal">dra inn på banen</span>}
             </div>
             <div className="overflow-y-auto scrollbar-thin space-y-1 pr-1" style={{ maxHeight: "calc(100vh - 260px)" }}>
               {sortedPlayers.length === 0 && (
@@ -1199,8 +1369,8 @@ function TacticsView({ team, user, db, setDB }) {
             </div>
           </div>
 
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-3 text-xs text-slate-400 space-y-1.5">
-            <div className="font-semibold text-slate-300 tracking-wider mb-1.5">HJELP</div>
+          <div className="bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-500 space-y-1.5">
+            <div className="font-semibold text-gray-700 tracking-wider mb-1.5">HJELP</div>
             <div>• <span className="text-lime-400">Dra fra stall:</span> Slipp på brikke</div>
             <div>• <span className="text-lime-400">Dra brikke:</span> Flytt fritt på banen</div>
             <div>• <span className="text-lime-400">Trykk brikke:</span> Velg fra liste</div>
@@ -1862,7 +2032,7 @@ export default function App() {
     );
   }
 
-  const currentTeam = (view.name === "team" || view.name === "tactics")
+  const currentTeam = view.name === "team"
     ? db.teams.find(t => t.id === view.teamId)
     : null;
 
@@ -1873,16 +2043,15 @@ export default function App() {
 
   const breadcrumbs = view.name === "club" ? "Klubbside"
     : view.name === "team" ? `Klubbside · ${currentTeam?.name || ""}`
-    : view.name === "tactics" ? `${currentTeam?.name || ""} · Taktikkbrett`
     : view.name === "admin" ? "Admin-panel"
     : "";
 
   const onBack = view.name === "club" || view.name === "admin" ? null
     : view.name === "team" ? () => setView({ name: "club" })
-    : () => setView({ name: "team", teamId: view.teamId });
+    : null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-body">
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-body">
       <GlobalStyles />
       <Header
         user={user}
@@ -1900,11 +2069,7 @@ export default function App() {
             onOpenTeam={(id) => setView({ name: "team", teamId: id })} />
         )}
         {view.name === "team" && currentTeam && (
-          <TeamView team={currentTeam} user={user} db={db} setDB={setDB}
-            onOpenTactics={() => setView({ name: "tactics", teamId: currentTeam.id })} />
-        )}
-        {view.name === "tactics" && currentTeam && (
-          <TacticsView team={currentTeam} user={user} db={db} setDB={setDB} />
+          <TeamView team={currentTeam} user={user} db={db} setDB={setDB} />
         )}
         {view.name === "admin" && isAdmin(user) && (
           <AdminView user={user} db={db} setDB={setDB}
