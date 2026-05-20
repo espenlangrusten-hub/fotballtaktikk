@@ -879,7 +879,16 @@ function TacticsView({ team, user, db, setDB }) {
   const [dropTarget, setDropTarget] = useState(null);
 
   const pitchRef = useRef(null);
-  const pendingDrag = useRef({ timer: null, slotId: null, pointerId: null, startX: 0, startY: 0, active: false });
+  // pendingTap: tracks a touch that hasn't moved enough to be a drag yet
+  const pendingTap = useRef({ slotId: null, startX: 0, startY: 0 });
+  // dragActive: true once movement threshold is crossed (avoids setState latency)
+  const dragActive = useRef(false);
+  // latestPos: most recent drag coords (written on every pointermove, read in rAF)
+  const latestPos = useRef({ x: 0, y: 0 });
+  const rafRef = useRef(null);
+
+  // livePos: the rendered position during drag — updated at rAF rate (60fps max)
+  const [livePos, setLivePos] = useState(null); // { x, y } | null
 
   const pitchCoords = useCallback((clientX, clientY) => {
     const r = pitchRef.current.getBoundingClientRect();
@@ -952,25 +961,16 @@ function TacticsView({ team, user, db, setDB }) {
     setSidebarDrag({ playerId: player.id, ghostX: e.clientX, ghostY: e.clientY });
   };
 
-  // ---- pitch slot drag (long-press 400ms before dragging activates) ----
+  // ---- pitch slot drag: starts on movement (no delay) ----
   const onSlotPointerDown = (e, slot) => {
     if (!write) return;
     e.stopPropagation();
     e.preventDefault();
     if (mode === "move") {
-      // Capture immediately so pointermove goes to the pitch
+      // Capture immediately so all pointermove/up go to the pitch element
       try { pitchRef.current.setPointerCapture(e.pointerId); } catch {}
-      pendingDrag.current = {
-        timer: setTimeout(() => {
-          pendingDrag.current.active = true;
-          setDraggingSlot(slot.id);
-        }, 380),
-        slotId: slot.id,
-        pointerId: e.pointerId,
-        startX: e.clientX,
-        startY: e.clientY,
-        active: false,
-      };
+      pendingTap.current = { slotId: slot.id, startX: e.clientX, startY: e.clientY };
+      dragActive.current = false;
     } else if (mode === "arrow") {
       const { x, y } = pitchCoords(e.clientX, e.clientY);
       setDrawingArrow({ slotId: slot.id, fromX: slot.x, fromY: slot.y, toX: x, toY: y });
@@ -979,31 +979,57 @@ function TacticsView({ team, user, db, setDB }) {
   };
 
   const onPitchPointerMove = (e) => {
-    // Cancel pending long press if finger moved more than 8px
-    if (pendingDrag.current.timer && !pendingDrag.current.active) {
-      const dx = Math.abs(e.clientX - pendingDrag.current.startX);
-      const dy = Math.abs(e.clientY - pendingDrag.current.startY);
+    // --- phase 1: waiting to see if this is a drag or a tap ---
+    if (pendingTap.current.slotId && !dragActive.current) {
+      const dx = Math.abs(e.clientX - pendingTap.current.startX);
+      const dy = Math.abs(e.clientY - pendingTap.current.startY);
       if (dx > 8 || dy > 8) {
-        clearTimeout(pendingDrag.current.timer);
-        pendingDrag.current.timer = null;
+        // Movement threshold crossed → start dragging immediately
+        dragActive.current = true;
+        const pos = pitchCoords(e.clientX, e.clientY);
+        latestPos.current = pos;
+        setDraggingSlot(pendingTap.current.slotId);
+        setLivePos(pos);
       }
       return;
     }
-    if (draggingSlot) {
-      const { x, y } = pitchCoords(e.clientX, e.clientY);
-      setTactic(t => ({ ...t, slots: t.slots.map(s => s.id === draggingSlot ? { ...s, x, y } : s) }));
-    } else if (drawingArrow) {
+    // --- phase 2: actively dragging ---
+    if (dragActive.current) {
+      latestPos.current = pitchCoords(e.clientX, e.clientY);
+      // Throttle React updates to animation-frame rate (60fps max)
+      if (!rafRef.current) {
+        rafRef.current = requestAnimationFrame(() => {
+          setLivePos({ ...latestPos.current });
+          rafRef.current = null;
+        });
+      }
+      return;
+    }
+    // --- arrow drawing ---
+    if (drawingArrow) {
       const { x, y } = pitchCoords(e.clientX, e.clientY);
       setDrawingArrow(a => ({ ...a, toX: x, toY: y }));
     }
   };
 
   const onPitchPointerUp = () => {
-    if (pendingDrag.current.timer) {
-      clearTimeout(pendingDrag.current.timer);
-      pendingDrag.current = { timer: null, slotId: null, pointerId: null, startX: 0, startY: 0, active: false };
+    // Was a tap (no significant movement) → open assign modal
+    if (pendingTap.current.slotId && !dragActive.current) {
+      if (mode === "move") setShowAssign(pendingTap.current.slotId);
     }
-    if (draggingSlot) setDraggingSlot(null);
+    pendingTap.current = { slotId: null, startX: 0, startY: 0 };
+
+    // Commit drag position to tactic state (single write on drop)
+    if (dragActive.current && draggingSlot) {
+      const { x, y } = latestPos.current;
+      setTactic(t => ({ ...t, slots: t.slots.map(s => s.id === draggingSlot ? { ...s, x, y } : s) }));
+    }
+    dragActive.current = false;
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    setDraggingSlot(null);
+    setLivePos(null);
+
+    // Finalise arrow
     if (drawingArrow) {
       const dist = Math.hypot(drawingArrow.toX - drawingArrow.fromX, drawingArrow.toY - drawingArrow.fromY);
       if (dist > 3) {
@@ -1018,13 +1044,6 @@ function TacticsView({ team, user, db, setDB }) {
       }
       setDrawingArrow(null);
     }
-  };
-
-  // Short tap on slot → open assign modal (only if not mid-drag)
-  const onSlotClick = (e, slot) => {
-    e.stopPropagation();
-    if (!write || draggingSlot || drawingArrow) return;
-    if (mode === "move") setShowAssign(slot.id);
   };
 
   const autoAssign = () => {
@@ -1248,10 +1267,10 @@ function TacticsView({ team, user, db, setDB }) {
                 <div
                   key={slot.id}
                   onPointerDown={(e) => onSlotPointerDown(e, slot)}
-                  onClick={(e) => onSlotClick(e, slot)}
                   className="absolute no-select"
                   style={{
-                    left: `${slot.x}%`, top: `${slot.y}%`,
+                    left: `${isDragging && livePos ? livePos.x : slot.x}%`,
+                    top: `${isDragging && livePos ? livePos.y : slot.y}%`,
                     transform: "translate(-50%,-50%)",
                     touchAction: "none",
                     cursor: !write ? "default" : mode === "move" ? (isDragging ? "grabbing" : "grab") : "crosshair",
@@ -1313,7 +1332,7 @@ function TacticsView({ team, user, db, setDB }) {
           {write && (
             <div className="text-xs text-slate-500 mt-2 text-center">
               {mode === "move"
-                ? "Hold fingeren på en spiller (0.4s) for å flytte · Dra fra stallen til banen · Trykk for å tilordne"
+                ? "Dra en spiller for å flytte · Dra fra stallen til banen · Trykk for å tilordne"
                 : "Dra fra en spiller for å tegne et løp"}
             </div>
           )}
