@@ -879,16 +879,7 @@ function TacticsView({ team, user, db, setDB }) {
   const [dropTarget, setDropTarget] = useState(null);
 
   const pitchRef = useRef(null);
-  // pendingTap: tracks a touch that hasn't moved enough to be a drag yet
-  const pendingTap = useRef({ slotId: null, startX: 0, startY: 0 });
-  // dragActive: true once movement threshold is crossed (avoids setState latency)
-  const dragActive = useRef(false);
-  // latestPos: most recent drag coords (written on every pointermove, read in rAF)
-  const latestPos = useRef({ x: 0, y: 0 });
-  const rafRef = useRef(null);
-
-  // livePos: the rendered position during drag — updated at rAF rate (60fps max)
-  const [livePos, setLivePos] = useState(null); // { x, y } | null
+  const [livePos, setLivePos] = useState(null); // { x, y } | null — position of dragged slot
 
   const pitchCoords = useCallback((clientX, clientY) => {
     const r = pitchRef.current.getBoundingClientRect();
@@ -961,51 +952,68 @@ function TacticsView({ team, user, db, setDB }) {
     setSidebarDrag({ playerId: player.id, ghostX: e.clientX, ghostY: e.clientY });
   };
 
-  // ---- pitch slot drag: starts on movement (no delay) ----
+  // ---- pitch slot drag: document-level listeners (avoids pointerleave/capture issues) ----
   const onSlotPointerDown = (e, slot) => {
     if (!write) return;
-    e.stopPropagation();
     e.preventDefault();
-    if (mode === "move") {
-      // Capture immediately so all pointermove/up go to the pitch element
-      try { pitchRef.current.setPointerCapture(e.pointerId); } catch {}
-      pendingTap.current = { slotId: slot.id, startX: e.clientX, startY: e.clientY };
-      dragActive.current = false;
-    } else if (mode === "arrow") {
+    e.stopPropagation();
+
+    if (mode === "arrow") {
       const { x, y } = pitchCoords(e.clientX, e.clientY);
       setDrawingArrow({ slotId: slot.id, fromX: slot.x, fromY: slot.y, toX: x, toY: y });
       try { pitchRef.current.setPointerCapture(e.pointerId); } catch {}
-    }
-  };
-
-  const onPitchPointerMove = (e) => {
-    // --- phase 1: waiting to see if this is a drag or a tap ---
-    if (pendingTap.current.slotId && !dragActive.current) {
-      const dx = Math.abs(e.clientX - pendingTap.current.startX);
-      const dy = Math.abs(e.clientY - pendingTap.current.startY);
-      if (dx > 8 || dy > 8) {
-        // Movement threshold crossed → start dragging immediately
-        dragActive.current = true;
-        const pos = pitchCoords(e.clientX, e.clientY);
-        latestPos.current = pos;
-        setDraggingSlot(pendingTap.current.slotId);
-        setLivePos(pos);
-      }
       return;
     }
-    // --- phase 2: actively dragging ---
-    if (dragActive.current) {
-      latestPos.current = pitchCoords(e.clientX, e.clientY);
-      // Throttle React updates to animation-frame rate (60fps max)
-      if (!rafRef.current) {
-        rafRef.current = requestAnimationFrame(() => {
-          setLivePos({ ...latestPos.current });
-          rafRef.current = null;
+
+    // move mode — track drag entirely with document listeners
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const slotId = slot.id;
+    let active = false;
+    let latestPos = { x: slot.x, y: slot.y };
+    let rafId = null;
+
+    const onMove = (ev) => {
+      ev.preventDefault();
+      if (!active) {
+        if (Math.abs(ev.clientX - startX) > 8 || Math.abs(ev.clientY - startY) > 8) {
+          active = true;
+          const pos = pitchCoords(ev.clientX, ev.clientY);
+          latestPos = pos;
+          setDraggingSlot(slotId);
+          setLivePos(pos);
+        }
+        return;
+      }
+      latestPos = pitchCoords(ev.clientX, ev.clientY);
+      if (!rafId) {
+        rafId = requestAnimationFrame(() => {
+          setLivePos({ ...latestPos });
+          rafId = null;
         });
       }
-      return;
-    }
-    // --- arrow drawing ---
+    };
+
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+      if (!active) {
+        setShowAssign(slotId);
+      } else {
+        setTactic(t => ({ ...t, slots: t.slots.map(s => s.id === slotId ? { ...s, ...latestPos } : s) }));
+      }
+      setDraggingSlot(null);
+      setLivePos(null);
+    };
+
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onUp);
+  };
+
+  // pitch pointer move/up: only used for arrow drawing now
+  const onPitchPointerMove = (e) => {
     if (drawingArrow) {
       const { x, y } = pitchCoords(e.clientX, e.clientY);
       setDrawingArrow(a => ({ ...a, toX: x, toY: y }));
@@ -1013,23 +1021,6 @@ function TacticsView({ team, user, db, setDB }) {
   };
 
   const onPitchPointerUp = () => {
-    // Was a tap (no significant movement) → open assign modal
-    if (pendingTap.current.slotId && !dragActive.current) {
-      if (mode === "move") setShowAssign(pendingTap.current.slotId);
-    }
-    pendingTap.current = { slotId: null, startX: 0, startY: 0 };
-
-    // Commit drag position to tactic state (single write on drop)
-    if (dragActive.current && draggingSlot) {
-      const { x, y } = latestPos.current;
-      setTactic(t => ({ ...t, slots: t.slots.map(s => s.id === draggingSlot ? { ...s, x, y } : s) }));
-    }
-    dragActive.current = false;
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-    setDraggingSlot(null);
-    setLivePos(null);
-
-    // Finalise arrow
     if (drawingArrow) {
       const dist = Math.hypot(drawingArrow.toX - drawingArrow.fromX, drawingArrow.toY - drawingArrow.fromY);
       if (dist > 3) {
@@ -1219,7 +1210,6 @@ function TacticsView({ team, user, db, setDB }) {
             }}
             onPointerMove={onPitchPointerMove}
             onPointerUp={onPitchPointerUp}
-            onPointerLeave={onPitchPointerUp}
             className="relative w-full pitch-grad shadow-2xl no-select border-2 border-white/20 rounded-2xl overflow-hidden"
             style={{ aspectRatio: "68 / 100", touchAction: "none" }}
           >
