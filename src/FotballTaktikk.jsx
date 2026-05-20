@@ -934,11 +934,16 @@ function TacticsView({ team, user, db, setDB }) {
             onChange={e => write && setTactic({ ...tactic, name: e.target.value })}
             disabled={!write}
             className="bg-slate-900/60 border border-slate-800 px-3 py-2 rounded-lg text-white font-display text-lg outline-none focus:border-lime-400/50 w-40 sm:w-56 disabled:opacity-70" />
-          <button onClick={() => setShowFormations(true)} disabled={!write}
-            className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-lime-400/50 text-white text-sm flex items-center gap-2 disabled:opacity-50">
-            <span className="font-display text-lime-400 text-base">{tactic.formation}</span>
-            <span className="text-slate-400 text-xs hidden sm:inline">bytt</span>
-          </button>
+          <select
+            value={tactic.formation}
+            onChange={e => write && switchFormation(e.target.value)}
+            disabled={!write}
+            className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 text-lime-400 font-display text-base outline-none focus:border-lime-400/50 disabled:opacity-50 cursor-pointer"
+          >
+            {Object.keys(FORMATIONS).map(key => (
+              <option key={key} value={key}>{key}</option>
+            ))}
+          </select>
           <button onClick={() => setShowSaved(true)}
             className="px-3 py-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-sm flex items-center gap-2">
             <ClipboardList className="w-4 h-4" />
