@@ -1793,11 +1793,11 @@ function TacticsView({ team, user, db, setDB }) {
                   }}
                 >
                   <div className={`flex flex-col items-center pointer-events-none transition-transform ${isDragging ? "scale-110" : isDropTarget ? "scale-105" : ""}`} style={{ gap: 2 }}>
-                    {/* FM jersey circle */}
+                    {/* Jersey circle */}
                     <div
                       className="rounded-full flex items-center justify-center font-bold shadow-lg"
                       style={{
-                        width: 30, height: 30,
+                        width: 32, height: 32,
                         background: player ? "linear-gradient(160deg,#c0392b 0%,#96281b 100%)" : "rgba(0,0,0,0.4)",
                         border: isDropTarget ? "2px solid #fff" : player ? "2px solid rgba(255,255,255,0.55)" : `2px dashed ${posMeta?.color || "#fff"}70`,
                         color: player ? "#fff" : (posMeta?.color || "#fff"),
@@ -1806,14 +1806,8 @@ function TacticsView({ team, user, db, setDB }) {
                     >
                       {player ? (player.number || "") : slot.role}
                     </div>
-                    {/* FM label card */}
-                    <div className="flex items-center gap-1 rounded"
-                      style={{ background: "rgba(8,12,22,0.9)", border: "1px solid rgba(255,255,255,0.18)", padding: "1px 4px", minWidth: 44 }}>
-                      {player && <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />}
-                      <div style={{ fontSize: 8, fontWeight: "700", color: posMeta?.color || "#84cc16", whiteSpace: "nowrap" }}>{slot.role}</div>
-                    </div>
-                    {/* Player name */}
-                    <div style={{ fontSize: 9, fontWeight: "600", color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,1)", maxWidth: 56, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {/* Plain name text only */}
+                    <div style={{ fontSize: 9, fontWeight: "600", color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,1)", maxWidth: 52, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {player ? player.name.split(" ").slice(-1)[0] : ""}
                     </div>
                   </div>
@@ -1829,46 +1823,33 @@ function TacticsView({ team, user, db, setDB }) {
           )}
         </div>
 
-        {/* ===== RIGHT SIDEBAR (always visible) ===== */}
-        <div style={{ width: 110, flexShrink: 0 }}>
-          <div className="text-[9px] font-bold tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>
-            STALL ({team.players.length})
+        {/* ===== RIGHT SIDEBAR ===== */}
+        <div style={{ width: 90, flexShrink: 0 }}>
+          <div className="text-[9px] font-bold tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>
+            STALL
           </div>
-          <div className="space-y-1 overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 180px)" }}>
-            {sortedPlayers.length === 0 && (
-              <div className="text-[10px] italic" style={{ color: "rgba(255,255,255,0.3)" }}>Ingen spillere</div>
-            )}
-            {sortedPlayers.map(p => {
-              const onPitch = tactic.slots.some(s => s.playerId === p.id);
+          <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 180px)" }}>
+            {sortedPlayers.filter(p => !tactic.slots.some(s => s.playerId === p.id)).map(p => {
               const isDraggingThis = sidebarDrag?.playerId === p.id;
               const posMeta = POSITION_BY_CODE[p.positions[0]];
               return (
                 <div key={p.id}
                   onPointerDown={(e) => startSidebarDrag(e, p)}
-                  className="no-select flex items-center gap-1.5 rounded-lg"
-                  style={{
-                    opacity: isDraggingThis ? 0.3 : 1,
-                    cursor: write ? "grab" : "default",
-                    touchAction: "none",
-                    padding: "4px 5px",
-                    background: onPitch ? "rgba(132,204,22,0.08)" : "rgba(255,255,255,0.04)",
-                    border: `1px solid ${onPitch ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.06)"}`,
-                  }}
+                  className="no-select flex items-center gap-1 py-0.5"
+                  style={{ opacity: isDraggingThis ? 0.2 : 1, cursor: write ? "grab" : "default", touchAction: "none" }}
                 >
-                  <div className="flex items-center justify-center rounded-full font-mono font-bold flex-shrink-0"
-                    style={{ width: 24, height: 24, background: "#0f172a", border: `1.5px solid ${onPitch ? "#84cc16" : (posMeta?.color || "#475569")}`, color: onPitch ? "#84cc16" : (posMeta?.color || "#94a3b8"), fontSize: 9 }}>
+                  <span style={{ fontSize: 9, fontWeight: "700", color: posMeta?.color || "#64748b", flexShrink: 0, minWidth: 14, textAlign: "right" }}>
                     {p.number || ""}
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 10, fontWeight: "600", color: onPitch ? "rgba(255,255,255,0.45)" : "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {p.name.split(" ").slice(-1)[0]}
-                    </div>
-                    <div style={{ fontSize: 8, color: posMeta?.color || "#64748b" }}>{p.positions[0] || ""}</div>
-                  </div>
-                  {onPitch && <Check className="flex-shrink-0" style={{ width: 10, height: 10, color: "#84cc16" }} />}
+                  </span>
+                  <span style={{ fontSize: 10, fontWeight: "500", color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.name.split(" ").slice(-1)[0]}
+                  </span>
                 </div>
               );
             })}
+            {sortedPlayers.every(p => tactic.slots.some(s => s.playerId === p.id)) && sortedPlayers.length > 0 && (
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.25)", fontStyle: "italic" }}>Alle på banen</div>
+            )}
           </div>
         </div>
       </div>
