@@ -321,7 +321,7 @@ function AuthScreen({ onLogin, db }) {
           <h1 className="font-display text-5xl text-white tracking-wide">
             FOTBALL<span className="text-lime-400">.</span>TAKTIKK
           </h1>
-          <p className="text-slate-400 text-sm mt-2 tracking-wide">
+          <p className="text-white/70 text-sm mt-2 tracking-wide">
             PROFESJONELL KLUBBSTYRING FOR LAGLEDERE
           </p>
         </div>
@@ -446,12 +446,13 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
   };
 
   return (
+    <div className="min-h-screen" style={{ background: "linear-gradient(155deg, #08111e 0%, #0d2340 45%, #08111e 100%)" }}>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
+      <div className="flex items-end justify-between mb-2 flex-wrap gap-4">
         <div>
           <div className="text-xs font-semibold text-lime-400 tracking-widest mb-2">KLUBBSIDE</div>
-          <h1 className="font-display text-4xl sm:text-5xl text-gray-900">LAG OVERSIKT</h1>
-          <p className="text-gray-500 mt-2">
+          <h1 className="font-display text-4xl sm:text-5xl text-white">LAG OVERSIKT</h1>
+          <p className="text-slate-400 mt-2">
             {isAdminUser ? "Administrer alle 11-er lag i klubben" : `${teams.length} lag du har tilgang til`}
           </p>
         </div>
@@ -464,12 +465,12 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
       </div>
 
       {teams.length === 0 ? (
-        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center">
-          <Shield className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="font-display text-2xl text-gray-500 mb-2">
+        <div className="border-2 border-dashed border-white/10 rounded-2xl p-16 text-center mt-8">
+          <Shield className="w-12 h-12 text-white/20 mx-auto mb-4" />
+          <h3 className="font-display text-2xl text-white/40 mb-2">
             {isAdminUser ? "INGEN LAG ENNÅ" : "INGEN TILGANG TIL LAG"}
           </h3>
-          <p className="text-gray-400 text-sm mb-6">
+          <p className="text-slate-500 text-sm mb-6">
             {isAdminUser ? "Opprett ditt første 11-er lag" : "Ta kontakt med admin for tilgang"}
           </p>
           {isAdminUser && (
@@ -480,11 +481,14 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
           )}
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {teams.map(team => (
-            <TeamCard key={team.id} team={team} user={user} onClick={() => onOpenTeam(team.id)} />
-          ))}
-        </div>
+        <>
+          <div className="text-xs font-bold tracking-widest mt-6 mb-3" style={{ color: "#475569" }}>VELG LAG</div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {teams.map(team => (
+              <TeamCard key={team.id} team={team} user={user} onClick={() => onOpenTeam(team.id)} />
+            ))}
+          </div>
+        </>
       )}
 
       {showNew && (
@@ -514,6 +518,7 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
         </Modal>
       )}
     </div>
+    </div>
   );
 }
 
@@ -522,25 +527,22 @@ function TeamCard({ team, user, onClick }) {
   const write = canWrite(user, team.id);
   return (
     <button onClick={onClick}
-      className="group text-left bg-white hover:bg-gray-50 border border-gray-200 hover:border-lime-400/60 rounded-2xl p-5 transition-all shadow-sm">
-      <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 rounded-xl bg-lime-50 border border-lime-200 flex items-center justify-center">
-          <Shield className="w-6 h-6 text-lime-600" />
-        </div>
+      className="group text-left rounded-2xl p-5 transition-all"
+      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
+      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.borderColor = "rgba(132,204,22,0.4)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+    >
+      <div className="flex items-start justify-between mb-3">
         <PermBadge permission={write ? "write" : "read"} />
       </div>
-      <h3 className="font-display text-xl text-gray-900 group-hover:text-lime-600 transition-colors">
+      <h3 className="font-display text-xl text-white">
         {team.name}{team.variant ? ` ${team.variant}` : ""}
       </h3>
-      <div className="text-xs text-gray-400 mt-1">Årskull {team.ageYear} · {team.format}</div>
-      <div className="flex gap-4 mt-4 pt-4 border-t border-gray-100">
+      <div className="text-xs text-slate-400 mt-1">Årskull {team.ageYear} · {team.format}</div>
+      <div className="flex gap-4 mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
         <div>
-          <div className="text-xs text-gray-400">Spillere</div>
-          <div className="font-display text-lg text-gray-900">{team.players.length}</div>
-        </div>
-        <div>
-          <div className="text-xs text-gray-400">Taktikker</div>
-          <div className="font-display text-lg text-gray-900">{team.tactics?.length || 0}</div>
+          <div className="text-xs text-slate-500">Spillere</div>
+          <div className="font-display text-lg text-white">{team.players.length}</div>
         </div>
       </div>
     </button>
@@ -844,6 +846,20 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
             style={{ maxWidth: "360px", aspectRatio: "68/100", touchAction: "none" }}
           >
             <PitchMarkings />
+            {tactic.arrows?.length > 0 && (
+              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ zIndex: 5 }}>
+                <defs>
+                  <marker id="ov-ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(132,204,22,0.9)" />
+                  </marker>
+                </defs>
+                {tactic.arrows.map(a => (
+                  <line key={a.id} x1={a.fromX} y1={a.fromY} x2={a.toX} y2={a.toY}
+                    stroke="rgba(132,204,22,0.8)" strokeWidth="1.5"
+                    markerEnd="url(#ov-ah)" vectorEffect="non-scaling-stroke" />
+                ))}
+              </svg>
+            )}
             {tactic.slots.map(slot => {
               const isDragging = draggingSlot === slot.id;
               const pos = isDragging && livePos ? livePos : { x: slot.x, y: slot.y };
