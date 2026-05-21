@@ -2144,6 +2144,7 @@ function TeamMatches({ team, user, db, setDB }) {
   const write = canWrite(user, team.id);
   const [showNew, setShowNew] = useState(false);
   const [activeMatch, setActiveMatch] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Form state for new match
   const [opponent, setOpponent] = useState("");
@@ -2159,6 +2160,11 @@ function TeamMatches({ team, user, db, setDB }) {
   const updateTeam = (mut) => {
     const next = { ...db, teams: db.teams.map(t => t.id === team.id ? mut(t) : t) };
     saveDB(next);
+  };
+
+  const deleteMatch = (mid) => {
+    updateTeam(t => ({ ...t, matches: (t.matches || []).filter(m => m.id !== mid) }));
+    setDeleteConfirm(null);
   };
 
   const startMatch = () => {
@@ -2233,32 +2239,39 @@ function TeamMatches({ team, user, db, setDB }) {
             const d = new Date(m.date);
             const dateStr = d.toLocaleDateString("nb-NO", { day: "numeric", month: "short", year: "numeric" });
             return (
-              <button key={m.id} onClick={() => setActiveMatch(m.id)}
-                className="w-full text-left rounded-2xl p-4 transition-all"
-                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(132,204,22,0.4)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs text-slate-500 mb-1">{dateStr}</div>
-                    <div className="font-semibold text-white text-sm">vs {m.opponent}</div>
-                    {m.tacticSnapshot && (
-                      <div className="text-xs text-slate-500 mt-0.5">{m.tacticSnapshot.formation}</div>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <div className="font-display text-2xl text-white">{m.homeScore} — {m.awayScore}</div>
-                    <div className={`text-xs font-bold mt-0.5 ${
-                      m.status === "live" ? "text-lime-400" :
-                      m.homeScore > m.awayScore ? "text-lime-400" :
-                      m.homeScore < m.awayScore ? "text-red-400" : "text-slate-400"
-                    }`}>
-                      {m.status === "live" ? "● LIVE" : m.homeScore > m.awayScore ? "SEIER" : m.homeScore < m.awayScore ? "TAP" : "UAVGJORT"}
+              <div key={m.id} className="rounded-2xl p-4 transition-all"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <button className="w-full text-left" onClick={() => setActiveMatch(m.id)}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-slate-500 mb-1">{dateStr}</div>
+                      <div className="font-semibold text-white text-sm">vs {m.opponent}</div>
+                      {m.tacticSnapshot && (
+                        <div className="text-xs text-slate-500 mt-0.5">{m.tacticSnapshot.formation}</div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="font-display text-2xl text-white">{m.homeScore} — {m.awayScore}</div>
+                      <div className={`text-xs font-bold mt-0.5 ${
+                        m.status === "live" ? "text-lime-400" :
+                        m.homeScore > m.awayScore ? "text-lime-400" :
+                        m.homeScore < m.awayScore ? "text-red-400" : "text-slate-400"
+                      }`}>
+                        {m.status === "live" ? "● LIVE" : m.homeScore > m.awayScore ? "SEIER" : m.homeScore < m.awayScore ? "TAP" : "UAVGJORT"}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </button>
+                </button>
+                {write && (
+                  <div className="flex justify-end mt-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    <button onClick={() => setDeleteConfirm(m.id)}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg"
+                      style={{ color: "rgba(255,255,255,0.3)" }}>
+                      <Trash2 className="w-3 h-3" /> Slett
+                    </button>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -2329,6 +2342,34 @@ function TeamMatches({ team, user, db, setDB }) {
           </div>
         </div>
       )}
+
+      {/* Delete confirm */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setDeleteConfirm(null)}>
+          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3"
+            style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
+            onClick={e => e.stopPropagation()}>
+            <div className="font-bold text-white">Slett kamp</div>
+            <div className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Er du sikker? All kampstatistikk og spillervurderinger slettes permanent.
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteConfirm(null)}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+                Avbryt
+              </button>
+              <button onClick={() => deleteMatch(deleteConfirm)}
+                className="flex-1 py-2 rounded-lg text-sm font-bold"
+                style={{ background: "rgba(239,68,68,0.9)", color: "#fff" }}>
+                Slett
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2339,15 +2380,20 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
   // Always read match from db so we get latest state
   const match = (team.matches || []).find(m => m.id === initialMatch.id) || initialMatch;
 
-  const [timerRunning, setTimerRunning] = useState(match.status === "live");
+  const [timerRunning, setTimerRunning] = useState(false);
   const [timerMs, setTimerMs] = useState(match.timerElapsed || 0);
   const timerRef = useRef(null);
   const lastTickRef = useRef(Date.now());
 
-  const [subMode, setSubMode] = useState(false); // selecting sub
-  const [subOutPlayer, setSubOutPlayer] = useState(null); // playerId being replaced
+  const [subMode, setSubMode] = useState(false);
+  const [subOutPlayer, setSubOutPlayer] = useState(null);
   const [showPostMatch, setShowPostMatch] = useState(false);
   const [ratings, setRatings] = useState(match.playerRatings || {});
+
+  // Goal modal state
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [goalScorer, setGoalScorer] = useState("");
+  const [goalAssist, setGoalAssist] = useState("");
 
   // Build current active lineup from snapshot + subs
   const buildActiveLineup = () => {
@@ -2401,10 +2447,19 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
 
   const addGoal = (isHome) => {
     if (!write) return;
-    const patch = isHome
-      ? { homeScore: match.homeScore + 1, events: [...match.events, { id: uid(), type: "goal", minute: displayMinute, isOpponent: false }] }
-      : { awayScore: match.awayScore + 1, events: [...match.events, { id: uid(), type: "goal", minute: displayMinute, isOpponent: true }] };
-    saveMatch(patch);
+    if (isHome) {
+      setShowGoalModal(true);
+      return;
+    }
+    saveMatch({ awayScore: match.awayScore + 1, events: [...match.events, { id: uid(), type: "goal", minute: displayMinute, isOpponent: true }] });
+  };
+
+  const confirmGoal = () => {
+    const ev = { id: uid(), type: "goal", minute: displayMinute, isOpponent: false };
+    if (goalScorer) ev.playerId = goalScorer;
+    if (goalAssist) ev.assistId = goalAssist;
+    saveMatch({ homeScore: match.homeScore + 1, events: [...match.events, ev] });
+    setShowGoalModal(false); setGoalScorer(""); setGoalAssist("");
   };
 
   const removeGoal = (isHome) => {
@@ -2646,16 +2701,114 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
             <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>HENDELSER</div>
             <div className="space-y-1">
               {match.events.filter(e => !e.isOpponent).map(ev => {
-                const p = playerById(ev.playerId);
+                const scorer = ev.playerId ? playerById(ev.playerId) : null;
+                const assist = ev.assistId ? playerById(ev.assistId) : null;
                 const icon = ev.type === "goal" ? "⚽" : ev.type === "yellow" ? "🟨" : "🟥";
                 return (
                   <div key={ev.id} className="flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
                     <span className="text-slate-500 font-mono text-xs w-8">{ev.minute}&apos;</span>
                     <span>{icon}</span>
-                    <span>{p?.name || "Ukjent"}</span>
+                    <span>{scorer?.name || (ev.type === "goal" ? "Ukjent" : "")}</span>
+                    {assist && <span className="text-slate-500 text-xs">↪ {assist.name}</span>}
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Ratings (finished match) */}
+        {match.status === "finished" && Object.keys(match.playerRatings || {}).some(pid => match.playerRatings[pid]?.rating > 0) && (
+          <div className="mb-4">
+            <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>SPILLERVURDERINGER</div>
+            <div className="space-y-2">
+              {Object.entries(match.playerRatings).map(([pid, r]) => {
+                if (!r?.rating) return null;
+                const p = playerById(pid);
+                if (!p) return null;
+                const mins = (match.playerMinutes || {})[pid] || 0;
+                return (
+                  <div key={pid} className="rounded-xl px-3 py-2 flex items-center gap-3"
+                    style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-white">{p.name}</div>
+                      {r.comment && <div className="text-xs text-slate-500 truncate">{r.comment}</div>}
+                    </div>
+                    <div className="text-xs text-slate-500 flex-shrink-0">{mins}min</div>
+                    <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm flex-shrink-0"
+                      style={{ background: "rgba(132,204,22,0.2)", color: "#84cc16" }}>
+                      {r.rating}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Goal modal */}
+        {showGoalModal && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center"
+            style={{ background: "rgba(0,0,0,0.6)" }}
+            onClick={() => { setShowGoalModal(false); setGoalScorer(""); setGoalAssist(""); }}>
+            <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-4"
+              style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
+              onClick={e => e.stopPropagation()}>
+              <div className="font-bold text-white">⚽ Mål — {displayMinute}&apos;</div>
+
+              <div>
+                <div className="text-[10px] font-semibold mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>SCORER</div>
+                <div className="flex flex-wrap gap-2">
+                  {activePIds.map(pid => {
+                    const p = playerById(pid);
+                    if (!p) return null;
+                    return (
+                      <button key={pid} onClick={() => setGoalScorer(id => id === pid ? "" : pid)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+                        style={{
+                          background: goalScorer === pid ? "#84cc16" : "rgba(255,255,255,0.08)",
+                          color: goalScorer === pid ? "#0f172a" : "#fff",
+                          border: `1px solid ${goalScorer === pid ? "#84cc16" : "rgba(255,255,255,0.12)"}`,
+                        }}>
+                        {p.number ? `${p.number} ` : ""}{p.name.split(" ").slice(-1)[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-semibold mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>ASSIST (valgfritt)</div>
+                <div className="flex flex-wrap gap-2">
+                  {activePIds.filter(pid => pid !== goalScorer).map(pid => {
+                    const p = playerById(pid);
+                    if (!p) return null;
+                    return (
+                      <button key={pid} onClick={() => setGoalAssist(id => id === pid ? "" : pid)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold"
+                        style={{
+                          background: goalAssist === pid ? "rgba(132,204,22,0.3)" : "rgba(255,255,255,0.06)",
+                          color: goalAssist === pid ? "#84cc16" : "rgba(255,255,255,0.6)",
+                          border: `1px solid ${goalAssist === pid ? "rgba(132,204,22,0.5)" : "rgba(255,255,255,0.1)"}`,
+                        }}>
+                        {p.number ? `${p.number} ` : ""}{p.name.split(" ").slice(-1)[0]}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button onClick={() => { setShowGoalModal(false); setGoalScorer(""); setGoalAssist(""); }}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                  style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+                  Avbryt
+                </button>
+                <button onClick={confirmGoal}
+                  className="flex-1 py-2 rounded-lg text-sm font-bold bg-lime-400 text-slate-950">
+                  Bekreft mål
+                </button>
+              </div>
             </div>
           </div>
         )}
