@@ -690,19 +690,55 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   const [draggingSlot, setDraggingSlot] = useState(null);
   const [livePos, setLivePos] = useState(null);
   const [arrowMode, setArrowMode] = useState(false);
-  const [drawingArrow, setDrawingArrow] = useState(null); // { fromX, fromY, toX, toY }
+  const [drawingArrow, setDrawingArrow] = useState(null);
   const [selectedArrowId, setSelectedArrowId] = useState(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [overwriteId, setOverwriteId] = useState("");
 
   useEffect(() => { selectedPlayerRef.current = selectedPlayerId; }, [selectedPlayerId]);
 
   const saveTacticToDb = useCallback(async (t) => {
     const list = team.tactics || [];
-    if (!list.some(x => x.id === t.id)) return; // only save if it's a stored tactic
+    if (!list.some(x => x.id === t.id)) return;
     const newList = list.map(x => x.id === t.id ? t : x);
     const next = { ...db, teams: db.teams.map(tm => tm.id === team.id ? { ...tm, tactics: newList } : tm) };
     setDB(next);
     await storage.set(DB_KEY, next);
   }, [db, setDB, team.id]);
+
+  const handleSaveDialog = () => {
+    const existing = savedTactics.find(t => t.id === tactic.id);
+    setSaveName(existing ? existing.name : (tactic.name || tactic.formation || ""));
+    setOverwriteId(existing ? existing.id : "");
+    setShowSaveDialog(true);
+  };
+
+  const handleConfirmSave = () => {
+    const name = saveName.trim();
+    if (!name) return;
+    let newList;
+    let savedId;
+    if (overwriteId) {
+      savedId = overwriteId;
+      const updated = { ...tactic, id: overwriteId, name };
+      newList = (team.tactics || []).map(t => t.id === overwriteId ? updated : t);
+      setTactic(updated);
+      setDropVal(`tactic:${overwriteId}`);
+    } else {
+      savedId = uid();
+      const newT = { ...tactic, id: savedId, name };
+      newList = [...(team.tactics || []), newT];
+      setTactic(newT);
+      setDropVal(`tactic:${savedId}`);
+    }
+    const next = { ...db, teams: db.teams.map(tm => tm.id === team.id ? { ...tm, tactics: newList } : tm) };
+    setDB(next);
+    storage.set(DB_KEY, next);
+    setShowSaveDialog(false);
+    setSaveName("");
+    setOverwriteId("");
+  };
 
   const assignPlayer = useCallback((slotId, playerId) => {
     setTactic(prev => {
@@ -861,6 +897,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   const pitchHasSelection = !!selectedPlayerId;
 
   return (
+    <>
     <div className="min-h-screen" style={{ background: "linear-gradient(155deg, #08111e 0%, #0d2340 45%, #08111e 100%)" }}>
       <div className="px-3 sm:px-5 pt-4 pb-8 max-w-2xl mx-auto">
 
@@ -869,8 +906,8 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
           <select
             value={dropVal}
             onChange={e => handleDropdownChange(e.target.value)}
-            className="flex-1 min-w-0 px-3 py-2 rounded-xl text-sm outline-none cursor-pointer font-semibold"
-            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", color: "#e2e8f0" }}
+            className="min-w-0 px-2 py-2 rounded-xl text-sm outline-none cursor-pointer font-semibold"
+            style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", color: "#e2e8f0", flex: "1 1 0", maxWidth: "calc(100% - 130px)" }}
           >
             <optgroup label="Standard formasjoner" style={{ background: "#0d2340" }}>
               {Object.keys(FORMATIONS).map(key => (
@@ -889,24 +926,35 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
           </select>
           {write && (
             <button
-              onClick={() => { setTactic(t => { const u = autoAssign(t); saveTacticToDb(u); return u; }); setSelectedPlayerId(null); }}
-              className="px-3 py-2 rounded-xl text-sm font-semibold flex-shrink-0 flex items-center gap-1.5"
-              style={{ background: "rgba(132,204,22,0.1)", border: "1px solid rgba(132,204,22,0.25)", color: "#84cc16" }}
+              onClick={handleSaveDialog}
+              className="px-3 py-2 rounded-xl text-sm font-bold flex-shrink-0 flex items-center gap-1.5"
+              style={{ background: "rgba(132,204,22,0.15)", border: "1px solid rgba(132,204,22,0.35)", color: "#84cc16" }}
             >
-              <Activity className="w-4 h-4" /> Auto
+              <Save className="w-4 h-4" /> Lagre
             </button>
           )}
           {write && (
             <button
+              title="Auto-tilordne spillere"
+              onClick={() => { setTactic(t => { const u = autoAssign(t); saveTacticToDb(u); return u; }); setSelectedPlayerId(null); }}
+              className="p-2 rounded-xl flex-shrink-0"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}
+            >
+              <Activity className="w-4 h-4" />
+            </button>
+          )}
+          {write && (
+            <button
+              title="Pilemodus"
               onClick={() => { setArrowMode(m => !m); setSelectedArrowId(null); }}
-              className="px-3 py-2 rounded-xl text-sm font-semibold flex-shrink-0 flex items-center gap-1.5"
+              className="p-2 rounded-xl flex-shrink-0"
               style={{
                 background: arrowMode ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.07)",
                 border: `1px solid ${arrowMode ? "#84cc16" : "rgba(255,255,255,0.12)"}`,
-                color: arrowMode ? "#84cc16" : "rgba(255,255,255,0.7)",
+                color: arrowMode ? "#84cc16" : "rgba(255,255,255,0.6)",
               }}
             >
-              <ArrowRight className="w-4 h-4" /> Piler
+              <ArrowRight className="w-4 h-4" />
             </button>
           )}
         </div>
@@ -1094,6 +1142,67 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
         </div>
       </div>
     </div>
+
+    {/* ── SAVE DIALOG ── */}
+
+    {showSaveDialog && (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+        style={{ background: "rgba(0,0,0,0.6)" }}
+        onClick={() => setShowSaveDialog(false)}>
+        <div className="w-full max-w-sm rounded-2xl p-5 space-y-4"
+          style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.15)" }}
+          onClick={e => e.stopPropagation()}>
+          <div className="font-bold text-white text-base">Lagre taktikk</div>
+
+          <div>
+            <label className="text-xs font-semibold block mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>NAVN</label>
+            <input
+              value={saveName}
+              onChange={e => setSaveName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleConfirmSave()}
+              placeholder="f.eks. Presstrykk 4-3-3"
+              autoFocus
+              className="w-full rounded-xl px-3 py-2.5 text-white text-sm outline-none"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)" }}
+            />
+          </div>
+
+          {savedTactics.length > 0 && (
+            <div>
+              <label className="text-xs font-semibold block mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>OVERSKRIV EKSISTERENDE (valgfritt)</label>
+              <select
+                value={overwriteId}
+                onChange={e => setOverwriteId(e.target.value)}
+                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#e2e8f0" }}
+              >
+                <option value="" style={{ background: "#0d2340" }}>— Lagre som ny —</option>
+                {savedTactics.map(t => (
+                  <option key={t.id} value={t.id} style={{ background: "#0d2340" }}>{t.name} — {t.formation}</option>
+                ))}
+              </select>
+              <p className="text-[10px] mt-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+                Predefinerte formasjoner kan ikke overskrives
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => setShowSaveDialog(false)}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+              Avbryt
+            </button>
+            <button onClick={handleConfirmSave}
+              disabled={!saveName.trim()}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
+              Lagre
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
