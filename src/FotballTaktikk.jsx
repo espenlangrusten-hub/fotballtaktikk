@@ -318,7 +318,7 @@ function AuthScreen({ onLogin, db }) {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-lime-400 mb-4 shadow-2xl shadow-lime-400/30">
             <Trophy className="w-8 h-8 text-slate-950" strokeWidth={2.5} />
           </div>
-          <h1 className="font-display text-5xl font-bold text-white">
+          <h1 className="font-display text-5xl font-bold" style={{ color: "#ffffff" }}>
             Fotball Taktikk
           </h1>
           <p className="text-white text-sm mt-2 tracking-wide">
@@ -484,7 +484,7 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
         <>
           <div className="text-xs font-bold tracking-widest mt-6 mb-3" style={{ color: "#475569" }}>VELG LAG</div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...teams].sort((a, b) => a.name.localeCompare(b.name, "nb")).map(team => (
+            {[...teams].sort((a, b) => a.name.localeCompare(b.name, "nb", { numeric: true })).map(team => (
               <TeamCard key={team.id} team={team} user={user} onClick={() => onOpenTeam(team.id)} />
             ))}
           </div>
