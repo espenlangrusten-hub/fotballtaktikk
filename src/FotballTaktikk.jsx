@@ -451,8 +451,8 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
       <div className="flex items-end justify-between mb-2 flex-wrap gap-4">
         <div>
           <div className="text-xs font-semibold text-lime-400 tracking-widest mb-2">KLUBBSIDE</div>
-          <h1 className="font-display text-4xl sm:text-5xl text-white">LAG OVERSIKT</h1>
-          <p className="text-slate-400 mt-2">
+          <h1 className="font-display text-4xl sm:text-5xl text-white" style={{ color: "#fff" }}>LAG OVERSIKT</h1>
+          <p style={{ color: "rgba(255,255,255,0.6)" }} className="mt-2">
             {isAdminUser ? "Administrer alle 11-er lag i klubben" : `${teams.length} lag du har tilgang til`}
           </p>
         </div>
@@ -689,6 +689,9 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [draggingSlot, setDraggingSlot] = useState(null);
   const [livePos, setLivePos] = useState(null);
+  const [arrowMode, setArrowMode] = useState(false);
+  const [drawingArrow, setDrawingArrow] = useState(null); // { fromX, fromY, toX, toY }
+  const [selectedArrowId, setSelectedArrowId] = useState(null);
 
   useEffect(() => { selectedPlayerRef.current = selectedPlayerId; }, [selectedPlayerId]);
 
@@ -738,10 +741,72 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     };
   };
 
+  const onPitchPointerDown = useCallback((e) => {
+    if (!write || !arrowMode) return;
+    if (e.target !== pitchRef.current && !e.target.classList.contains('pitch-surface')) return;
+    e.preventDefault();
+    const from = pitchCoords(e.clientX, e.clientY);
+    let current = { fromX: from.x, fromY: from.y, toX: from.x, toY: from.y };
+    setDrawingArrow(current);
+
+    const onMove = (ev) => {
+      ev.preventDefault();
+      const to = pitchCoords(ev.clientX, ev.clientY);
+      current = { ...current, toX: to.x, toY: to.y };
+      setDrawingArrow({ ...current });
+    };
+    const onUp = () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onUp);
+      const dist = Math.hypot(current.toX - current.fromX, current.toY - current.fromY);
+      if (dist > 3) {
+        const arrow = { id: uid(), ...current };
+        setTactic(t => {
+          const updated = { ...t, arrows: [...(t.arrows || []), arrow] };
+          saveTacticToDb(updated);
+          return updated;
+        });
+      }
+      setDrawingArrow(null);
+    };
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onUp);
+  }, [write, arrowMode, pitchCoords, saveTacticToDb]);
+
   const onSlotPointerDown = (e, slot) => {
     if (!write) return;
     e.preventDefault();
     e.stopPropagation();
+
+    if (arrowMode) {
+      const from = pitchCoords(e.clientX, e.clientY);
+      let current = { fromX: from.x, fromY: from.y, toX: from.x, toY: from.y };
+      setDrawingArrow(current);
+      const onMove = (ev) => {
+        ev.preventDefault();
+        const to = pitchCoords(ev.clientX, ev.clientY);
+        current = { ...current, toX: to.x, toY: to.y };
+        setDrawingArrow({ ...current });
+      };
+      const onUp = () => {
+        document.removeEventListener('pointermove', onMove);
+        document.removeEventListener('pointerup', onUp);
+        const dist = Math.hypot(current.toX - current.fromX, current.toY - current.fromY);
+        if (dist > 3) {
+          const arrow = { id: uid(), ...current };
+          setTactic(t => {
+            const updated = { ...t, arrows: [...(t.arrows || []), arrow] };
+            saveTacticToDb(updated);
+            return updated;
+          });
+        }
+        setDrawingArrow(null);
+      };
+      document.addEventListener('pointermove', onMove, { passive: false });
+      document.addEventListener('pointerup', onUp);
+      return;
+    }
+
     const startX = e.clientX, startY = e.clientY;
     const slotId = slot.id;
     let active = false;
@@ -831,10 +896,28 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
               <Activity className="w-4 h-4" /> Auto
             </button>
           )}
+          {write && (
+            <button
+              onClick={() => { setArrowMode(m => !m); setSelectedArrowId(null); }}
+              className="px-3 py-2 rounded-xl text-sm font-semibold flex-shrink-0 flex items-center gap-1.5"
+              style={{
+                background: arrowMode ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.07)",
+                border: `1px solid ${arrowMode ? "#84cc16" : "rgba(255,255,255,0.12)"}`,
+                color: arrowMode ? "#84cc16" : "rgba(255,255,255,0.7)",
+              }}
+            >
+              <ArrowRight className="w-4 h-4" /> Piler
+            </button>
+          )}
         </div>
 
         {/* ── PITCH ── */}
-        {pitchHasSelection && (
+        {arrowMode && (
+          <div className="text-center text-xs mb-2 font-semibold" style={{ color: "#84cc16" }}>
+            Pilemodus — dra fra et punkt for å tegne · trykk pil for å slette
+          </div>
+        )}
+        {!arrowMode && pitchHasSelection && (
           <div className="text-center text-xs mb-2 font-semibold" style={{ color: "#84cc16" }}>
             Trykk på en posisjon for å plassere spilleren
           </div>
@@ -842,6 +925,8 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
         <div className="flex justify-center mb-4">
           <div
             ref={pitchRef}
+            onPointerDown={write && arrowMode ? onPitchPointerDown : undefined}
+            onClick={() => setSelectedArrowId(null)}
             className="relative pitch-grad rounded-2xl overflow-hidden no-select w-full"
             style={{ maxWidth: "360px", aspectRatio: "68/100", touchAction: "none" }}
           >
@@ -1381,6 +1466,20 @@ function TacticsView({ team, user, db, setDB }) {
     setTactic(cleaned);
   };
 
+  const saveTacticNotes = useCallback(() => {
+    setTactic(current => {
+      if (!current.isNew) {
+        // save to db
+        const list = team.tactics || [];
+        const newList = list.map(x => x.id === current.id ? current : x);
+        const next = { ...db, teams: db.teams.map(tm => tm.id === team.id ? { ...tm, tactics: newList } : tm) };
+        setDB(next);
+        storage.set(DB_KEY, next);
+      }
+      return current;
+    });
+  }, [db, setDB, team.id, team.tactics]);
+
   const deleteTactic = async (tid) => {
     if (!write) return;
     if (!confirm("Slette taktikken?")) return;
@@ -1474,15 +1573,10 @@ function TacticsView({ team, user, db, setDB }) {
               <div
                 key={p.id}
                 onPointerDown={(e) => startSidebarDrag(e, p)}
-                className={`flex-shrink-0 flex flex-col items-center gap-1 px-2 py-2 rounded-xl border transition-all no-select ${
-                  write ? "cursor-grab active:cursor-grabbing" : "cursor-default"
-                } ${onPitch
-                  ? "bg-lime-400/10 border-lime-400/40"
-                  : "bg-slate-900/80 border-slate-700 hover:border-slate-600"
-                } ${isDraggingThis ? "opacity-40 scale-95" : ""}`}
+                className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-1 py-1 transition-all no-select ${write ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${isDraggingThis ? "opacity-40 scale-95" : ""}`}
                 style={{ minWidth: 56, touchAction: "none" }}
               >
-                <div className="w-9 h-9 rounded-full flex items-center justify-center font-mono text-sm font-bold border-2 bg-slate-950"
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold"
                   style={{ borderColor: onPitch ? "#84cc16" : "#475569", color: onPitch ? "#84cc16" : "#94a3b8" }}>
                   {p.number ?? "?"}
                 </div>
@@ -1604,23 +1698,9 @@ function TacticsView({ team, user, db, setDB }) {
                         {player ? (player.number ?? "?") : slot.role}
                       </span>
                     </div>
-                    {/* FM-style info card */}
-                    <div
-                      className="rounded px-1.5 py-0.5 text-center shadow-md"
-                      style={{
-                        background: "rgba(10,14,20,0.88)",
-                        border: `1px solid ${posMeta?.color || "#84cc16"}55`,
-                        minWidth: 58,
-                        maxWidth: 80,
-                      }}
-                    >
-                      <div className="text-[9px] font-bold tracking-wider leading-tight" style={{ color: posMeta?.color || "#84cc16" }}>
-                        {slot.role}
-                      </div>
-                      <div className="text-[10px] text-white font-semibold leading-tight truncate">
-                        {player
-                          ? (player.name.split(" ").slice(-1)[0])
-                          : <span className="text-white/30">—</span>}
+                    <div className="text-center" style={{ minWidth: 42 }}>
+                      <div className="font-semibold text-white truncate" style={{ fontSize: 10, maxWidth: 58, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
+                        {player ? player.name.split(" ").slice(-1)[0] : ""}
                       </div>
                     </div>
                   </div>
@@ -1723,6 +1803,107 @@ function TacticsView({ team, user, db, setDB }) {
           </div>
         );
       })()}
+
+      {/* ===== TACTICAL NOTES ===== */}
+      <div className="mt-6 space-y-4">
+        {/* Description */}
+        <div>
+          <div className="text-xs font-bold tracking-widest mb-2 text-slate-400">TAKTIKKBESKRIVELSE</div>
+          {write ? (
+            <textarea
+              value={tactic.notes?.description || ""}
+              onChange={e => setTactic(t => ({ ...t, notes: { ...t.notes, description: e.target.value } }))}
+              onBlur={() => saveTacticNotes()}
+              placeholder="Beskriv lagets generelle spillestil og prinsipper..."
+              rows={3}
+              className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-lime-400/50 resize-none placeholder:text-slate-600"
+            />
+          ) : (
+            <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3">
+              {tactic.notes?.description || <span className="italic text-slate-600">Ingen beskrivelse</span>}
+            </div>
+          )}
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          {/* Defensive */}
+          <div>
+            <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#60a5fa" }}>DEFENSIVPRINSIPPER</div>
+            {write ? (
+              <textarea
+                value={tactic.notes?.defense || ""}
+                onChange={e => setTactic(t => ({ ...t, notes: { ...t.notes, defense: e.target.value } }))}
+                onBlur={() => saveTacticNotes()}
+                placeholder="Press høyt, kompakt blokk, 4-4-2 blokk..."
+                rows={4}
+                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-400/50 resize-none placeholder:text-slate-600"
+              />
+            ) : (
+              <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3 min-h-[80px]">
+                {tactic.notes?.defense || <span className="italic text-slate-600">Ingen notater</span>}
+              </div>
+            )}
+          </div>
+
+          {/* Attacking */}
+          <div>
+            <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#84cc16" }}>ANGREPSPRINSIPPER</div>
+            {write ? (
+              <textarea
+                value={tactic.notes?.attack || ""}
+                onChange={e => setTactic(t => ({ ...t, notes: { ...t.notes, attack: e.target.value } }))}
+                onBlur={() => saveTacticNotes()}
+                placeholder="Hurtig omstilling, bygge fra bak, kantspill..."
+                rows={4}
+                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-lime-400/50 resize-none placeholder:text-slate-600"
+              />
+            ) : (
+              <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3 min-h-[80px]">
+                {tactic.notes?.attack || <span className="italic text-slate-600">Ingen notater</span>}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Position instructions */}
+        <div>
+          <div className="text-xs font-bold tracking-widest mb-3 text-slate-400">INSTRUKSJONER PER POSISJON</div>
+          <div className="space-y-2">
+            {tactic.slots.map(slot => {
+              const player = team.players.find(p => p.id === slot.playerId);
+              const posMeta = POSITION_BY_CODE[slot.role];
+              const label = player ? player.name : slot.role;
+              const noteKey = slot.id;
+              return (
+                <div key={slot.id} className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-20 pt-2">
+                    <div className="text-xs font-bold truncate" style={{ color: player ? "#84cc16" : (posMeta?.color || "#94a3b8") }}>
+                      {label}
+                    </div>
+                    {player && <div className="text-[9px] text-slate-600">{slot.role}</div>}
+                  </div>
+                  {write ? (
+                    <input
+                      value={tactic.notes?.positions?.[noteKey] || ""}
+                      onChange={e => setTactic(t => ({
+                        ...t,
+                        notes: { ...t.notes, positions: { ...(t.notes?.positions || {}), [noteKey]: e.target.value } }
+                      }))}
+                      onBlur={() => saveTacticNotes()}
+                      placeholder={`Instruksjon for ${slot.role}...`}
+                      className="flex-1 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-1.5 text-white text-xs outline-none focus:border-lime-400/50 placeholder:text-slate-700"
+                    />
+                  ) : (
+                    <div className="flex-1 text-xs text-slate-400 py-1.5">
+                      {tactic.notes?.positions?.[noteKey] || <span className="italic text-slate-700">—</span>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
 
       {/* Modals */}
       {showFormations && (
