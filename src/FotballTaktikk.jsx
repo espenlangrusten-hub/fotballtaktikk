@@ -836,11 +836,9 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
                     >
                       {player ? (player.number ?? "?") : slot.role}
                     </div>
-                    <div className="rounded px-1 py-0.5 text-center"
-                      style={{ background: "rgba(8,14,22,0.88)", border: `1px solid ${posMeta?.color || "#84cc16"}50`, minWidth: 42 }}>
-                      <div className="font-bold tracking-wide" style={{ fontSize: 8, color: posMeta?.color || "#84cc16" }}>{slot.role}</div>
-                      <div className="font-semibold text-white truncate" style={{ fontSize: 9, maxWidth: 58 }}>
-                        {player ? player.name.split(" ").slice(-1)[0] : <span style={{ color: "rgba(255,255,255,0.2)" }}>—</span>}
+                    <div className="text-center" style={{ minWidth: 42 }}>
+                      <div className="font-semibold text-white truncate drop-shadow" style={{ fontSize: 10, maxWidth: 58, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
+                        {player ? player.name.split(" ").slice(-1)[0] : ""}
                       </div>
                     </div>
                   </div>
