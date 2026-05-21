@@ -162,6 +162,64 @@ const FORMATION_LABELS = {
   "4-1-4-1":   "Dobbel indreløper",
 };
 
+const FORMATION_NOTES = {
+  "4-4-2": {
+    description: "Den klassiske 4-4-2 gir god balanse mellom forsvar og angrep med to kompakte blokker på fire. Tosspissystemet skaper konstant press på motstanderens forsvarslinje og åpner rom for innløpende midtbanespillere.",
+    defense: "Kompakt 4-4-blokk mellom linjene. De to spissene presser bakover og tvinger motstanderen utover. Midtbanen holder avstandene korte og dekker sentrum. Backene holder linjen og unngår å bli dradd ut av posisjon.",
+    attack: "Rask ball fra midtbane til de to spissene som kombinerer og skaper rom. Ytre midtbanespillere strekker spillet bredt og leverer innlegg. Ved ballinnvinding satses det raskt på kontring med korte pasninger mellom spissene.",
+  },
+  "4-3-3": {
+    description: "4-3-3 er kjent for aggressivt høypress og dominant posisjonsspill, popularisert av Guardiola og Klopp. Tre offensive spillere skaper konstant trussel i dybden og presser motstanderens forsvar høyt opp på banen.",
+    defense: "Høyintensivt press initieres av de tre angriperne. Midtbanden på tre løper frem og tilbake for å støtte presset og blokkere pasningslinjene. Laget presser i kompakte enheter og forsøker å vinne ballen høyt.",
+    attack: "Vingspillere strekker spillet maksimalt og søker 1v1-situasjoner. Sentral spiss drar på seg CB-er og skaper rom bak. Indreløperne løper sent inn i boksen som en tredje scoring-trussel.",
+  },
+  "4-2-3-1": {
+    description: "4-2-3-1 er Mourinhos signatur — kontroll via dobbel defensiv pivot og en kreativ offensiv midtbanespiller bak en ensom spiss. Gir sterk kompakthet, solid ballsikring og god defensiv balanse.",
+    defense: "Dobbel pivot sitter lavt og dekker sentrale rom foran backlinjen. De tre offensive midtbanespillerne trekker seg tilbake og danner en 4-5-1 ved ballap. Ensom spiss presser keeper og CB-er for å hindre rolig oppbygging.",
+    attack: "Spiss vinner luftdueller eller holder ballen som ankerpunkt. Nr. 10 finner rom mellom linjene og trigger dyp pasning. Bredden sørges for av de ytre AMs og backene som løper overlappende.",
+  },
+  "4-1-2-1-2": {
+    description: "Diamant-midtbanen (popularisert av Pirlo) skaper overtalighet sentralt. Den smale strukturen er svak på kantene, og backene må kompensere med høye og brede overlappinger for å gi tilstrekkelig bredde i spillet.",
+    defense: "Én enkelt DM ankrer defensiven og dekker rommet foran backlinjen. De to sentrale midtbanespillerne løper ut og dekker bredden. Spissene presser nedover og tvinger spill ut mot kantene der backene ligger høyt.",
+    attack: "Tett ballsirkulasjon sentralt presser motstanderens midtbane. Offensiv AM opererer mellom linjene og trigger de to spissene med gjennomslagspasninger. Backene overlapper og gir bredden som den smale diamanten mangler.",
+  },
+  "3-4-3": {
+    description: "Tuchels tre-back-system med brede wingbacks skaper en 5-2-3 ved balltap. Tre angripere utgjør en konstant trussel, og wingbacks bidrar offensivt med innlegg og dybdeløp langs hele sidelinjen.",
+    defense: "Tre midtstoppere dekker bredden i eget forsvar. Wingbacks trekker inn og danner en fembackslinje ved balltap. Dobbel pivot styrer sentralt rom og støtter forsvaret.",
+    attack: "Wingbacks overlapper aggressivt og leverer innlegg fra dype posisjoner. Tre offensive spillere roterer og bytter posisjoner for å skape forvirring i motstanderens forsvar. Spillet skiftes raskt fra side til side.",
+  },
+  "3-4-2-1": {
+    description: "Contes system med tre CB-er, fire midtbanespillere, to trequartisti og en ensom spiss. Svært kompakt defensivt med raske kombinasjoner via de to halvspissene som opererer mellom linjene.",
+    defense: "Tre CB-er sikrer bredde og dybde i forsvar. Wingbacks trekker seg inn i en 5-linje ved balltap. De to trequartistiene hjelper i midtbanen og danner en kompakt 5-4-1-blokk.",
+    attack: "De to nr. 10-ene fluktuerer mellom linjene og kombinerer med spissen. Wingbacks gir bredde og krysser. Spissen jobber hardt for å gi rom og utnytte hullene bak motstanderens forsvar.",
+  },
+  "3-5-2": {
+    description: "Deschamps' franske system med fem på midtbanen dominerer ballbesittelse og presser effektivt. To spisser jobber hardt og kombinerer for å åpne rom og utnytte overtalighet i midtbanen.",
+    defense: "Tre CB-er holder linjen mens wingbacks trekker inn og danner en fembackslinje. De tre sentrale midtbanespillerne jobber hardt for å dekke rom og støtte forsvaret.",
+    attack: "Wingbacks gir bredde og fungerer som faktiske midtbanespillere offensivt. De tre sentrale midtbanespillerne sørger for ballsirkulasjon og timing av dybdeløp. To spisser presser og kombinerer i angrepssonen.",
+  },
+  "4-3-2-1": {
+    description: "Juletreet (Capello) er smalt og intenst sentralt. To offensive midtbanespillere bak en spiss skaper krydssituasjoner og vanskelige markeringsproblemer som er utfordrende for motstanderens forsvarslinje.",
+    defense: "Tre sentrale midtbanespillere dekker sentralt rom effektivt og støtter backlinjen. Spissen presser bakover. Kompakt blokk i midtsonen gjør det vanskelig for motstanderen å spille gjennom laget.",
+    attack: "De to halvoffensive midtbanespillerne bytter posisjoner for å forvirre motstanderens forsvar. Spissen fluktuerer og drar CB-er med seg. Pasningsspillet er raskt og kort for å utnytte tette mellomrom.",
+  },
+  "5-3-2": {
+    description: "Defensiv blokk med fem bakspillere og tre midtbanespillere. Prioriterer kompakthet og ballsikkerhet, og søker å slå kontringer med raske, effektive pasninger til de to spissene i front.",
+    defense: "Fem bakspillere danner en bred og kompakt linje. Midtbanden på tre dekker sentralt rom og støtter backlinjen. Laget trekker seg organisert tilbake og inviterer motstanderen til å ha ballen.",
+    attack: "Ballen vinnes og slås raskt til de to spissene. Midtbanespillerne støtter kontringen med løp inn i boksen. Wingbacks gjør offensive løp ved stabile faser.",
+  },
+  "4-5-1": {
+    description: "Kompakt midtbanelinje på fem med en ensom spiss. Laget presser og kontrer effektivt, med ytre midtbanespillere som fungerer som vinger og gir bredde i spillet.",
+    defense: "Fem midtbanespillere danner en tett blokk foran de fire backene. Spissen presser nedover for å hindre CB-er i å sette opp spillet. Laget er svært vanskelig å spille seg gjennom sentralt.",
+    attack: "Rask transisjon via ytre midtbanespillere når ballen er vunnet. Spissen er alltid i fart og venter på gjennomspillinger. Kreative innbyttere brukes sent i kamp for å åpne spillet.",
+  },
+  "4-1-4-1": {
+    description: "Enkelt defensiv midtbanespiller med fire midtbanespillere og en spiss. Balansert system med god dekning sentralt og fleksibel midtbane der indreløperne kan løpe høyt offensivt.",
+    defense: "DM-en sitter sentralt og dekker rom foran backlinjen. De fire midtbanespillerne presser aggressivt og støtter defensiven. Spissen setter press på CB-er og tvinger feil i oppbyggingen.",
+    attack: "Indreløperne overlapper ytre midtbanespillere og støtter spissen ved innlegg. Backene legger seg høyt og gir bredden. Spissen holder ballen som ankerpunkt og gir tid til at midtbanen løper inn.",
+  },
+};
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 const roleGroup = (code) => POSITION_BY_CODE[code]?.group || "ATT";
 
@@ -607,7 +665,7 @@ function TeamView({ team, user, db, setDB, onBack }) {
           {/* Tab bar + edit/delete actions */}
           <div className="flex items-center justify-between">
             <div className="flex">
-              {[["oversikt","Oversikt"],["spillere","Spillere"],["taktikk","Taktikk"]].map(([key,label]) => (
+              {[["oversikt","Oversikt"],["spillere","Spillere"],["taktikk","Taktikk"],["kamp","Kamp"]].map(([key,label]) => (
                 <button key={key} onClick={() => setTab(key)}
                   className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
                     tab === key
@@ -649,6 +707,7 @@ function TeamView({ team, user, db, setDB, onBack }) {
           <TacticsView team={liveTeam} user={user} db={db} setDB={setDB} />
         </div>
       )}
+      {tab === "kamp" && <TeamMatches team={liveTeam} user={user} db={db} setDB={setDB} />}
     </div>
   );
 }
@@ -1832,23 +1891,12 @@ function TacticsView({ team, user, db, setDB }) {
 
       {/* ===== TACTICAL NOTES ===== */}
       <div className="mt-6 space-y-4">
-        {/* Description */}
+        {/* Description — predefined based on formation */}
         <div>
           <div className="text-xs font-bold tracking-widest mb-2 text-slate-400">TAKTIKKBESKRIVELSE</div>
-          {write ? (
-            <textarea
-              value={tactic.notes?.description || ""}
-              onChange={e => setTactic(t => ({ ...t, notes: { ...t.notes, description: e.target.value } }))}
-              onBlur={() => saveTacticNotes()}
-              placeholder="Beskriv lagets generelle spillestil og prinsipper..."
-              rows={3}
-              className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-lime-400/50 resize-none placeholder:text-slate-600"
-            />
-          ) : (
-            <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3">
-              {tactic.notes?.description || <span className="italic text-slate-600">Ingen beskrivelse</span>}
-            </div>
-          )}
+          <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3">
+            {FORMATION_NOTES[tactic.formation]?.description || <span className="italic text-slate-600">Ingen beskrivelse tilgjengelig</span>}
+          </div>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
@@ -1860,13 +1908,13 @@ function TacticsView({ team, user, db, setDB }) {
                 value={tactic.notes?.defense || ""}
                 onChange={e => setTactic(t => ({ ...t, notes: { ...t.notes, defense: e.target.value } }))}
                 onBlur={() => saveTacticNotes()}
-                placeholder="Press høyt, kompakt blokk, 4-4-2 blokk..."
+                placeholder={FORMATION_NOTES[tactic.formation]?.defense || "Legg inn defensive prinsipper..."}
                 rows={4}
-                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-400/50 resize-none placeholder:text-slate-600"
+                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-400/50 resize-none placeholder:text-slate-500"
               />
             ) : (
               <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3 min-h-[80px]">
-                {tactic.notes?.defense || <span className="italic text-slate-600">Ingen notater</span>}
+                {tactic.notes?.defense || <span className="italic text-slate-500">{FORMATION_NOTES[tactic.formation]?.defense}</span>}
               </div>
             )}
           </div>
@@ -1879,13 +1927,13 @@ function TacticsView({ team, user, db, setDB }) {
                 value={tactic.notes?.attack || ""}
                 onChange={e => setTactic(t => ({ ...t, notes: { ...t.notes, attack: e.target.value } }))}
                 onBlur={() => saveTacticNotes()}
-                placeholder="Hurtig omstilling, bygge fra bak, kantspill..."
+                placeholder={FORMATION_NOTES[tactic.formation]?.attack || "Legg inn angrepsprinsipper..."}
                 rows={4}
-                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-lime-400/50 resize-none placeholder:text-slate-600"
+                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-lime-400/50 resize-none placeholder:text-slate-500"
               />
             ) : (
               <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3 min-h-[80px]">
-                {tactic.notes?.attack || <span className="italic text-slate-600">Ingen notater</span>}
+                {tactic.notes?.attack || <span className="italic text-slate-500">{FORMATION_NOTES[tactic.formation]?.attack}</span>}
               </div>
             )}
           </div>
