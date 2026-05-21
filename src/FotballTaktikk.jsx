@@ -331,6 +331,13 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const roleGroup = (code) => POSITION_BY_CODE[code]?.group || "ATT";
 
 const GROUP_ORDER = { K: 0, DEF: 1, MID: 2, ATT: 3 };
+const shortName = (name) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1][0]}.`;
+};
+
 const sortPlayers = (players) => [...players].sort((a, b) => {
   const ga = GROUP_ORDER[POSITION_BY_CODE[a.positions?.[0]]?.group] ?? 9;
   const gb = GROUP_ORDER[POSITION_BY_CODE[b.positions?.[0]]?.group] ?? 9;
@@ -1257,7 +1264,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
                     </div>
                     <div className="text-center" style={{ minWidth: 42 }}>
                       <div className="font-semibold text-white truncate" style={{ fontSize: 10, maxWidth: 58, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
-                        {player ? player.name.split(" ").slice(-1)[0] : ""}
+                        {player ? shortName(player.name) : ""}
                       </div>
                     </div>
                   </div>
@@ -2029,7 +2036,7 @@ function TacticsView({ team, user, db, setDB }) {
                     </div>
                     {/* Plain name text only */}
                     <div style={{ fontSize: 9, fontWeight: "600", color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,1)", maxWidth: 52, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {player ? player.name.split(" ").slice(-1)[0] : ""}
+                      {player ? shortName(player.name) : ""}
                     </div>
                   </div>
                 </div>
@@ -2072,7 +2079,7 @@ function TacticsView({ team, user, db, setDB }) {
                     {p.number || ""}
                   </span>
                   <span style={{ fontSize: 10, fontWeight: "500", color: isSelected ? "#84cc16" : "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {p.name.split(" ").slice(-1)[0]}
+                    {shortName(p.name)}
                   </span>
                 </div>
               );
@@ -2143,7 +2150,7 @@ function TacticsView({ team, user, db, setDB }) {
             {tactic.slots.map(slot => {
               const player = team.players.find(p => p.id === slot.playerId);
               const posMeta = POSITION_BY_CODE[slot.role];
-              const label = player ? player.name : slot.role;
+              const label = player ? shortName(player.name) : slot.role;
               const noteKey = slot.id;
               const predefined = ROLE_NOTES[tactic.formation]?.[slot.role] || "";
               return (
@@ -2830,7 +2837,7 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
                       {player.number || ""}
                     </div>
                     <div style={{ fontSize: 8, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,1)", maxWidth: 44, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {player.name.split(" ").slice(-1)[0]}
+                      {shortName(player.name)}
                     </div>
                   </div>
                 );
@@ -2871,7 +2878,7 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
                       color: "#fff",
                     }}>
                     <span style={{ color: posMeta?.color || "#64748b", fontSize: 9, fontWeight: "700" }}>{p.number || "—"}</span>
-                    {p.name.split(" ").slice(-1)[0]}
+                    {shortName(p.name)}
                   </button>
                 );
               })}
@@ -2977,7 +2984,7 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
                           color: goalScorer === pid ? "#0f172a" : "#fff",
                           border: `1px solid ${goalScorer === pid ? "#84cc16" : "rgba(255,255,255,0.12)"}`,
                         }}>
-                        {p.number ? `${p.number} ` : ""}{p.name.split(" ").slice(-1)[0]}
+                        {p.number ? `${p.number} ` : ""}{shortName(p.name)}
                       </button>
                     );
                   })}
@@ -2998,7 +3005,7 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
                           color: goalAssist === pid ? "#84cc16" : "rgba(255,255,255,0.6)",
                           border: `1px solid ${goalAssist === pid ? "rgba(132,204,22,0.5)" : "rgba(255,255,255,0.1)"}`,
                         }}>
-                        {p.number ? `${p.number} ` : ""}{p.name.split(" ").slice(-1)[0]}
+                        {p.number ? `${p.number} ` : ""}{shortName(p.name)}
                       </button>
                     );
                   })}
