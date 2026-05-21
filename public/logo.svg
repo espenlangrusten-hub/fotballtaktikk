@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 224" fill="none">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#a3e635"/>
+    </marker>
+    <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#a3e635"/>
+    </marker>
+    <marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M0 1.5L9 5L0 8.5z" fill="#a3e635"/>
+    </marker>
+    <clipPath id="clip">
+      <path d="M40 8 Q8 8 8 40 L8 172 Q8 204 40 204 L84 204 L100 222 L116 204 L160 204 Q192 204 192 172 L192 40 Q192 8 160 8 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Drop shadow -->
+  <path d="M42 12 Q10 12 10 44 L10 174 Q10 206 42 206 L86 206 L100 224 L114 206 L158 206 Q190 206 190 174 L190 44 Q190 12 158 12 Z"
+    fill="rgba(0,0,0,0.35)" transform="translate(3,4)"/>
+
+  <!-- Outer border (lime green) -->
+  <path d="M40 4 Q4 4 4 40 L4 172 Q4 208 40 208 L83 208 L100 228 L117 208 L160 208 Q196 208 196 172 L196 40 Q196 4 160 4 Z"
+    fill="#84cc16"/>
+
+  <!-- Inner background (dark navy) -->
+  <path d="M40 14 Q14 14 14 40 L14 172 Q14 198 40 198 L84 198 L100 218 L116 198 L160 198 Q186 198 186 172 L186 40 Q186 14 160 14 Z"
+    fill="#0a1628"/>
+
+  <!-- Pitch top box -->
+  <rect x="68" y="22" width="64" height="46" rx="2" fill="none" stroke="#84cc16" stroke-width="1.8"/>
+  <rect x="80" y="22" width="40" height="14" rx="1" fill="none" stroke="#84cc16" stroke-width="1.5"/>
+  <rect x="87" y="22" width="26" height="6" rx="1" fill="none" stroke="#84cc16" stroke-width="1.2"/>
+  <circle cx="100" cy="36" r="1.2" fill="#84cc16"/>
+
+  <!-- Pitch bottom box -->
+  <rect x="68" y="144" width="64" height="46" rx="2" fill="none" stroke="#84cc16" stroke-width="1.8"/>
+  <rect x="80" y="176" width="40" height="14" rx="1" fill="none" stroke="#84cc16" stroke-width="1.5"/>
+  <rect x="87" y="184" width="26" height="6" rx="1" fill="none" stroke="#84cc16" stroke-width="1.2"/>
+  <circle cx="100" cy="162" r="1.2" fill="#84cc16"/>
+
+  <!-- Center circle around ball -->
+  <circle cx="100" cy="106" r="32" fill="none" stroke="#84cc16" stroke-width="2.5"/>
+
+  <!-- X markers -->
+  <text x="22" y="82" font-family="Arial" font-size="20" font-weight="900" fill="#84cc16">×</text>
+  <text x="158" y="70" font-family="Arial" font-size="20" font-weight="900" fill="#84cc16">×</text>
+  <text x="24" y="148" font-family="Arial" font-size="20" font-weight="900" fill="#84cc16">×</text>
+
+  <!-- O markers -->
+  <circle cx="162" cy="98" r="8" fill="none" stroke="#84cc16" stroke-width="2.5"/>
+  <circle cx="32" cy="118" r="8" fill="none" stroke="#84cc16" stroke-width="2.5"/>
+  <circle cx="166" cy="155" r="8" fill="none" stroke="#84cc16" stroke-width="2.5"/>
+
+  <!-- Dashed arrows -->
+  <path d="M38 74 C56 64 75 80 88 92" stroke="#a3e635" stroke-width="2.5" stroke-dasharray="5 4" fill="none" marker-end="url(#a1)"/>
+  <path d="M36 130 C60 148 78 138 90 120" stroke="#a3e635" stroke-width="2.5" stroke-dasharray="5 4" fill="none" marker-end="url(#a2)"/>
+  <path d="M110 118 C124 134 145 140 158 148" stroke="#a3e635" stroke-width="2.5" stroke-dasharray="5 4" fill="none" marker-end="url(#a3)"/>
+
+  <!-- Football (soccer ball) -->
+  <circle cx="100" cy="106" r="22" fill="white" stroke="#e2e8f0" stroke-width="0.5"/>
+  <!-- Pentagon patches -->
+  <path d="M100 87 L112 96 L107 110 L93 110 L88 96 Z" fill="#1e293b"/>
+  <path d="M100 87 L92 80 L82 83 L80 94 L88 96 Z" fill="#1e293b" opacity="0.4"/>
+  <path d="M100 87 L108 80 L118 83 L120 94 L112 96 Z" fill="#1e293b" opacity="0.4"/>
+  <path d="M107 110 L114 120 L107 127 L100 125 L93 127 L86 120 L93 110 Z" fill="#1e293b" opacity="0.3"/>
+</svg>

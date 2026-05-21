@@ -497,9 +497,7 @@ function AuthScreen({ onLogin, db }) {
 
       <div className="relative w-full max-w-md anim-in">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-lime-400 mb-4 shadow-2xl shadow-lime-400/30">
-            <Trophy className="w-8 h-8 text-slate-950" strokeWidth={2.5} />
-          </div>
+          <img src="/logo.svg" alt="Fotball Taktikk" className="mx-auto mb-5" style={{ width: 100, height: 112 }} />
           <h1 className="font-display text-5xl font-bold" style={{ color: "#ffffff" }}>
             Fotball Taktikk
           </h1>
@@ -513,13 +511,13 @@ function AuthScreen({ onLogin, db }) {
             <Field icon={<User className="w-4 h-4" />} label="Brukernavn">
               <input value={u} onChange={e => setU(e.target.value)}
                 className="bg-transparent w-full outline-none text-white placeholder:text-slate-600"
-                placeholder="lagleder" autoComplete="username" />
+                placeholder="Brukernavn" autoComplete="username" style={{ fontSize: 16 }} />
             </Field>
             <Field icon={<Lock className="w-4 h-4" />} label="Passord">
               <input type={showPass ? "text" : "password"} value={p} onChange={e => setP(e.target.value)}
                 onKeyDown={e => e.key === "Enter" && submit()}
                 className="bg-transparent w-full outline-none text-white placeholder:text-slate-600"
-                placeholder="••••••••" autoComplete="current-password" />
+                placeholder="••••••••" autoComplete="current-password" style={{ fontSize: 16 }} />
               <button onClick={() => setShowPass(s => !s)} className="hover:text-lime-400" style={{ color: "rgba(255,255,255,0.5)" }}>
                 {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -536,10 +534,7 @@ function AuthScreen({ onLogin, db }) {
               LOGG INN
             </button>
 
-            <p className="text-xs text-white/60 text-center pt-2">
-              Demo-admin: <span className="font-mono text-lime-400">admin / admin</span>
-            </p>
-            <p className="text-xs text-white/40 text-center">
+            <p className="text-xs text-white/40 text-center pt-1">
               Brukerkontoer opprettes og administreres av admin.
             </p>
           </div>
