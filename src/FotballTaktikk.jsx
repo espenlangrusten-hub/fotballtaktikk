@@ -71,16 +71,40 @@ const FORMATIONS = {
     { role: "K",  x: 50, y: 92 },
     { role: "LB", x: 15, y: 72 }, { role: "CB", x: 37, y: 76 },
     { role: "CB", x: 63, y: 76 }, { role: "RB", x: 85, y: 72 },
-    { role: "CM", x: 30, y: 52 }, { role: "CM", x: 50, y: 52 }, { role: "CM", x: 70, y: 52 },
-    { role: "LW", x: 17, y: 25 }, { role: "ST", x: 50, y: 20 }, { role: "RW", x: 83, y: 25 },
+    { role: "CM", x: 30, y: 52 }, { role: "CM", x: 50, y: 50 }, { role: "CM", x: 70, y: 52 },
+    { role: "LW", x: 17, y: 24 }, { role: "ST", x: 50, y: 18 }, { role: "RW", x: 83, y: 24 },
   ],
   "4-2-3-1": [
     { role: "K",  x: 50, y: 92 },
     { role: "LB", x: 15, y: 72 }, { role: "CB", x: 37, y: 76 },
     { role: "CB", x: 63, y: 76 }, { role: "RB", x: 85, y: 72 },
     { role: "DM", x: 37, y: 60 }, { role: "DM", x: 63, y: 60 },
-    { role: "AM", x: 22, y: 38 }, { role: "AM", x: 50, y: 38 }, { role: "AM", x: 78, y: 38 },
+    { role: "AM", x: 20, y: 38 }, { role: "AM", x: 50, y: 36 }, { role: "AM", x: 80, y: 38 },
     { role: "ST", x: 50, y: 18 },
+  ],
+  "4-1-2-1-2": [
+    { role: "K",  x: 50, y: 92 },
+    { role: "LB", x: 15, y: 72 }, { role: "CB", x: 37, y: 76 },
+    { role: "CB", x: 63, y: 76 }, { role: "RB", x: 85, y: 72 },
+    { role: "DM", x: 50, y: 62 },
+    { role: "CM", x: 28, y: 48 }, { role: "CM", x: 72, y: 48 },
+    { role: "AM", x: 50, y: 34 },
+    { role: "ST", x: 35, y: 18 }, { role: "ST", x: 65, y: 18 },
+  ],
+  "3-4-3": [
+    { role: "K",  x: 50, y: 92 },
+    { role: "CB", x: 27, y: 76 }, { role: "CB", x: 50, y: 78 }, { role: "CB", x: 73, y: 76 },
+    { role: "LM", x: 12, y: 52 }, { role: "CM", x: 37, y: 54 },
+    { role: "CM", x: 63, y: 54 }, { role: "RM", x: 88, y: 52 },
+    { role: "LW", x: 20, y: 22 }, { role: "ST", x: 50, y: 17 }, { role: "RW", x: 80, y: 22 },
+  ],
+  "3-4-2-1": [
+    { role: "K",  x: 50, y: 92 },
+    { role: "CB", x: 22, y: 78 }, { role: "CB", x: 50, y: 80 }, { role: "CB", x: 78, y: 78 },
+    { role: "LM", x: 10, y: 56 }, { role: "CM", x: 33, y: 56 },
+    { role: "CM", x: 67, y: 56 }, { role: "RM", x: 90, y: 56 },
+    { role: "AM", x: 33, y: 32 }, { role: "AM", x: 67, y: 32 },
+    { role: "ST", x: 50, y: 16 },
   ],
   "3-5-2": [
     { role: "K",  x: 50, y: 92 },
@@ -89,11 +113,19 @@ const FORMATIONS = {
     { role: "CM", x: 50, y: 50 }, { role: "CM", x: 67, y: 52 }, { role: "RM", x: 90, y: 55 },
     { role: "ST", x: 37, y: 22 }, { role: "ST", x: 63, y: 22 },
   ],
+  "4-3-2-1": [
+    { role: "K",  x: 50, y: 92 },
+    { role: "LB", x: 15, y: 72 }, { role: "CB", x: 37, y: 76 },
+    { role: "CB", x: 63, y: 76 }, { role: "RB", x: 85, y: 72 },
+    { role: "CM", x: 25, y: 57 }, { role: "CM", x: 50, y: 55 }, { role: "CM", x: 75, y: 57 },
+    { role: "AM", x: 35, y: 38 }, { role: "AM", x: 65, y: 38 },
+    { role: "ST", x: 50, y: 18 },
+  ],
   "5-3-2": [
     { role: "K",  x: 50, y: 92 },
     { role: "LB", x: 10, y: 70 }, { role: "CB", x: 30, y: 76 },
     { role: "CB", x: 50, y: 78 }, { role: "CB", x: 70, y: 76 }, { role: "RB", x: 90, y: 70 },
-    { role: "CM", x: 30, y: 50 }, { role: "CM", x: 50, y: 50 }, { role: "CM", x: 70, y: 50 },
+    { role: "CM", x: 28, y: 50 }, { role: "CM", x: 50, y: 48 }, { role: "CM", x: 72, y: 50 },
     { role: "ST", x: 37, y: 22 }, { role: "ST", x: 63, y: 22 },
   ],
   "4-5-1": [
@@ -104,22 +136,30 @@ const FORMATIONS = {
     { role: "CM", x: 50, y: 50 }, { role: "CM", x: 67, y: 50 }, { role: "RM", x: 88, y: 45 },
     { role: "ST", x: 50, y: 22 },
   ],
-  "3-4-3": [
-    { role: "K",  x: 50, y: 92 },
-    { role: "CB", x: 27, y: 76 }, { role: "CB", x: 50, y: 78 }, { role: "CB", x: 73, y: 76 },
-    { role: "LM", x: 15, y: 52 }, { role: "CM", x: 37, y: 54 },
-    { role: "CM", x: 63, y: 54 }, { role: "RM", x: 85, y: 52 },
-    { role: "LW", x: 20, y: 22 }, { role: "ST", x: 50, y: 18 }, { role: "RW", x: 80, y: 22 },
-  ],
   "4-1-4-1": [
     { role: "K",  x: 50, y: 92 },
     { role: "LB", x: 15, y: 72 }, { role: "CB", x: 37, y: 76 },
     { role: "CB", x: 63, y: 76 }, { role: "RB", x: 85, y: 72 },
     { role: "DM", x: 50, y: 60 },
-    { role: "LM", x: 15, y: 42 }, { role: "CM", x: 37, y: 44 },
-    { role: "CM", x: 63, y: 44 }, { role: "RM", x: 85, y: 42 },
+    { role: "LM", x: 12, y: 42 }, { role: "CM", x: 35, y: 44 },
+    { role: "CM", x: 65, y: 44 }, { role: "RM", x: 88, y: 42 },
     { role: "ST", x: 50, y: 20 },
   ],
+};
+
+// Manager-inspired labels shown next to each formation
+const FORMATION_LABELS = {
+  "4-4-2":     "Klassisk",
+  "4-3-3":     "Guardiola / Klopp",
+  "4-2-3-1":   "Mourinho",
+  "4-1-2-1-2": "Diamant (Pirlo)",
+  "3-4-3":     "Tuchel / Chelsea",
+  "3-4-2-1":   "Conte (Inter)",
+  "3-5-2":     "Deschamps",
+  "4-3-2-1":   "Juletreet (Capello)",
+  "5-3-2":     "Defensiv blokk",
+  "4-5-1":     "Kompakt midtbane",
+  "4-1-4-1":   "Dobbel indreløper",
 };
 
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -414,12 +454,6 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
-        <StatCard label="Lag" value={teams.length} icon={<Shield className="w-4 h-4" />} />
-        <StatCard label="Spillere" value={teams.reduce((s, t) => s + t.players.length, 0)} icon={<Users className="w-4 h-4" />} />
-        <StatCard label="Taktikker" value={teams.reduce((s, t) => s + (t.tactics?.length || 0), 0)} icon={<ClipboardList className="w-4 h-4" />} />
-      </div>
-
       {teams.length === 0 ? (
         <div className="border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center">
           <Shield className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -474,16 +508,6 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
   );
 }
 
-function StatCard({ label, value, icon }) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 shadow-sm">
-      <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold tracking-wider mb-2">
-        {icon} {label.toUpperCase()}
-      </div>
-      <div className="font-display text-3xl sm:text-4xl text-gray-900">{value}</div>
-    </div>
-  );
-}
 
 function TeamCard({ team, user, onClick }) {
   const write = canWrite(user, team.id);
@@ -563,22 +587,6 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold tracking-wider mb-2"><Users className="w-4 h-4" />SPILLERE</div>
-          <div className="font-display text-4xl text-gray-900">{team.players.length}</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold tracking-wider mb-2"><ClipboardList className="w-4 h-4" />TAKTIKKER</div>
-          <div className="font-display text-4xl text-gray-900">{(team.tactics||[]).length}</div>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-gray-400 text-xs font-semibold tracking-wider mb-2"><Target className="w-4 h-4" />FORMASJON</div>
-          <div className="font-display text-2xl text-gray-900">{lastTactic?.formation || "—"}</div>
-        </div>
-      </div>
-
       {/* Mini tactic board */}
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="px-4 py-3 flex items-center justify-between border-b border-gray-100">
@@ -1113,7 +1121,8 @@ function TacticsView({ team, user, db, setDB }) {
           <input value={tactic.name}
             onChange={e => write && setTactic({ ...tactic, name: e.target.value })}
             disabled={!write}
-            className="bg-white border border-gray-200 px-3 py-2 rounded-lg text-gray-900 font-display text-lg outline-none focus:border-lime-400/50 w-40 sm:w-56 disabled:opacity-70" />
+            placeholder="Navn på taktikk"
+            className="bg-white border border-gray-200 px-3 py-2 rounded-lg text-gray-900 font-display text-lg outline-none focus:border-lime-400/50 w-40 sm:w-52 disabled:opacity-70" />
           <select
             value={tactic.formation}
             onChange={e => write && switchFormation(e.target.value)}
@@ -1121,29 +1130,42 @@ function TacticsView({ team, user, db, setDB }) {
             className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-lime-600 font-display text-base outline-none focus:border-lime-400/50 disabled:opacity-50 cursor-pointer"
           >
             {Object.keys(FORMATIONS).map(key => (
-              <option key={key} value={key}>{key}</option>
+              <option key={key} value={key}>{key} — {FORMATION_LABELS[key]}</option>
             ))}
           </select>
-          <button onClick={() => setShowSaved(true)}
-            className="px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-sm flex items-center gap-2">
-            <ClipboardList className="w-4 h-4" />
-            <span className="hidden sm:inline">Lagrede</span>
-            <span className="font-mono text-xs text-lime-400">{(team.tactics || []).length}</span>
-          </button>
+          {(team.tactics || []).length > 0 && (
+            <button onClick={() => setShowSaved(true)}
+              className="px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-sm flex items-center gap-2">
+              <ClipboardList className="w-4 h-4" />
+              <span className="hidden sm:inline">Lagrede</span>
+              <span className="font-mono text-xs text-lime-400">{(team.tactics || []).length}</span>
+            </button>
+          )}
         </div>
         {write && (
           <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={newTactic}
+              className="px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-lime-400/50 text-gray-700 text-sm flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Ny
+            </button>
             <button onClick={autoAssign}
               className="px-3 py-2 rounded-lg border border-gray-200 hover:border-lime-400/50 text-gray-700 text-sm flex items-center gap-2">
               <Activity className="w-4 h-4" /> Auto-tilord
             </button>
             <button onClick={saveTactic}
               className="px-4 py-2 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 font-bold text-sm flex items-center gap-2 shadow-lg shadow-lime-400/20">
-              <Save className="w-4 h-4" /> Lagre
+              <Save className="w-4 h-4" /> {tactic.isNew ? "Lagre ny" : "Lagre"}
             </button>
           </div>
         )}
       </div>
+      {/* Unsaved indicator */}
+      {write && tactic.isNew && (
+        <div className="mb-3 flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          Ny taktikk — ikke lagret ennå. Gi den et navn og trykk «Lagre ny».
+        </div>
+      )}
 
       {/* ===== PLAYER STRIP (mobile: above pitch; desktop: sidebar) ===== */}
 
