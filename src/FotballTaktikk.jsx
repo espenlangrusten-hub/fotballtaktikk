@@ -499,7 +499,7 @@ function AuthScreen({ onLogin, db }) {
         <div className="text-center mb-8">
           <img src="logo.svg" alt="Fotball Taktikk" className="mx-auto mb-5" style={{ width: 100, height: 112 }} />
           <h1 className="font-display text-5xl font-bold" style={{ color: "#ffffff" }}>
-            Fotball Taktikk
+            Fotballtaktikk
           </h1>
           <p className="text-white text-sm mt-2 tracking-wide">
             PROFESJONELL KLUBBSTYRING FOR LAGLEDERE
