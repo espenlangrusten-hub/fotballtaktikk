@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Football Tactics App Logo</title>
+  <desc>Professional football tactics app icon with pitch, tactical markers, arrows and football motif.</desc>
+  <defs>
+    <linearGradient id="greenGrad" x1="176" y1="110" x2="850" y2="914" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A7FF2F"/>
+      <stop offset="0.45" stop-color="#35E85B"/>
+      <stop offset="1" stop-color="#00A948"/>
+    </linearGradient>
+    <linearGradient id="darkGrad" x1="200" y1="100" x2="820" y2="900" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#092235"/>
+      <stop offset="0.55" stop-color="#061623"/>
+      <stop offset="1" stop-color="#021017"/>
+    </linearGradient>
+    <linearGradient id="ballLight" x1="415" y1="415" x2="610" y2="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.6" stop-color="#E9EEF2"/>
+      <stop offset="1" stop-color="#B7C6D1"/>
+    </linearGradient>
+    <filter id="shadow" x="80" y="80" width="864" height="864" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#001015" flood-opacity="0.35"/>
+    </filter>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .pitch-line{stroke:url(#greenGrad);stroke-width:18;stroke-linecap:round;stroke-linejoin:round;}
+      .thin-line{stroke:url(#greenGrad);stroke-width:11;stroke-linecap:round;stroke-linejoin:round;}
+      .marker{stroke:url(#greenGrad);stroke-width:20;stroke-linecap:round;stroke-linejoin:round;filter:url(#glow);}
+      .dash{stroke:url(#greenGrad);stroke-width:17;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:22 28;filter:url(#glow);}
+      .arrow{stroke:url(#greenGrad);stroke-width:17;stroke-linecap:round;stroke-linejoin:round;filter:url(#glow);}
+    </style>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <path d="M226 118H798C861.5 118 913 169.5 913 233V764C913 827.5 861.5 879 798 879H639L512 996L385 879H226C162.5 879 111 827.5 111 764V233C111 169.5 162.5 118 226 118Z" fill="url(#darkGrad)"/>
+    <path d="M226 118H798C861.5 118 913 169.5 913 233V764C913 827.5 861.5 879 798 879H639L512 996L385 879H226C162.5 879 111 827.5 111 764V233C111 169.5 162.5 118 226 118Z" stroke="url(#greenGrad)" stroke-width="38" stroke-linejoin="round"/>
+    <path d="M230 148H794C841 148 883 190 883 237V758C883 805 841 847 794 847H626L512 952L398 847H230C183 847 141 805 141 758V237C141 190 183 148 230 148Z" stroke="#EFFFF0" stroke-opacity="0.28" stroke-width="6" stroke-linejoin="round"/>
+  </g>
+
+  <rect x="204" y="202" width="616" height="616" rx="54" class="pitch-line"/>
+  <line x1="204" y1="510" x2="820" y2="510" class="thin-line"/>
+
+  <path d="M408 202V310H616V202" class="thin-line"/>
+  <path d="M458 202V262H566V202" class="thin-line"/>
+  <path d="M452 310C465 354 559 354 572 310" class="thin-line"/>
+  <circle cx="512" cy="286" r="8" fill="#A7FF2F"/>
+
+  <path d="M408 818V710H616V818" class="thin-line"/>
+  <path d="M458 818V758H566V818" class="thin-line"/>
+  <path d="M452 710C465 666 559 666 572 710" class="thin-line"/>
+  <circle cx="512" cy="734" r="8" fill="#A7FF2F"/>
+
+  <circle cx="512" cy="510" r="72" fill="#061623" stroke="url(#greenGrad)" stroke-width="16" filter="url(#glow)"/>
+  <circle cx="512" cy="510" r="98" stroke="#40FF5B" stroke-opacity="0.25" stroke-width="10"/>
+
+  <path d="M336 463C410 386 539 360 648 392" class="dash"/>
+  <path d="M648 392C681 403 706 400 732 367" class="arrow"/>
+  <path d="M730 367L694 367M730 367L710 400" class="arrow"/>
+
+  <path d="M304 744C357 646 482 656 544 690" class="arrow"/>
+  <path d="M544 690L511 665M544 690L509 707" class="arrow"/>
+
+  <path d="M545 690C627 709 696 679 748 612" class="dash"/>
+  <path d="M748 612L714 624M748 612L740 648" class="arrow"/>
+
+  <g class="marker">
+    <path d="M302 300L342 340M342 300L302 340"/>
+    <path d="M700 444L740 484M740 444L700 484"/>
+    <path d="M306 616L346 656M346 616L306 656"/>
+    <circle cx="744" cy="292" r="28" fill="none"/>
+    <circle cx="298" cy="456" r="28" fill="none"/>
+    <circle cx="722" cy="694" r="28" fill="none"/>
+    <circle cx="285" cy="745" r="28" fill="none"/>
+  </g>
+
+  <g>
+    <circle cx="512" cy="510" r="61" fill="url(#ballLight)" stroke="#D7E3EA" stroke-width="5"/>
+    <path d="M512 466L551 494L536 539H488L473 494L512 466Z" fill="#071622"/>
+    <path d="M468 481L438 492L426 529L449 560L488 539L473 494L468 481Z" fill="#071622" opacity="0.96"/>
+    <path d="M556 481L586 492L598 529L575 560L536 539L551 494L556 481Z" fill="#071622" opacity="0.96"/>
+    <path d="M488 539L476 581L512 603L548 581L536 539H488Z" fill="#071622" opacity="0.96"/>
+    <path d="M512 466V430M468 481L442 453M556 481L582 453M449 560L421 584M575 560L603 584M512 603V638" stroke="#AFC1CB" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="512" cy="510" r="61" fill="none" stroke="#FFFFFF" stroke-opacity="0.42" stroke-width="4"/>
+  </g>
+
+  <path d="M230 158H794C824 158 853 175 870 200C817 179 745 166 652 166H285C221 166 180 205 166 265C162 245 165 221 179 199C191 175 207 162 230 158Z" fill="white" opacity="0.06"/>
+</svg>
