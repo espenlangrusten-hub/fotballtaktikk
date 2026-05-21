@@ -1375,11 +1375,14 @@ function TacticsView({ team, user, db, setDB }) {
 
   const [tactic, setTactic] = useState(initial);
   const [mode, setMode] = useState("move");
-  const [draggingSlot, setDraggingSlot] = useState(null);   // slot id being dragged on pitch
+  const [draggingSlot, setDraggingSlot] = useState(null);
   const [drawingArrow, setDrawingArrow] = useState(null);
   const [showAssign, setShowAssign] = useState(null);
   const [showFormations, setShowFormations] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // ---- sidebar click-to-select state ----
   const [selectedSidebarPlayerId, setSelectedSidebarPlayerId] = useState(null);
@@ -1553,15 +1556,23 @@ function TacticsView({ team, user, db, setDB }) {
     setShowFormations(false);
   };
 
-  const saveTactic = async () => {
+  const openSaveDialog = () => {
     if (!write) return;
+    setSaveName(tactic.name || "");
+    setShowSaveDialog(true);
+  };
+
+  const handleConfirmSave = async () => {
+    const name = saveName.trim();
+    if (!name) return;
     const list = team.tactics || [];
-    const cleaned = { ...tactic }; delete cleaned.isNew;
+    const cleaned = { ...tactic, name }; delete cleaned.isNew;
     const exists = list.some(t => t.id === tactic.id);
     const newList = exists ? list.map(x => x.id === tactic.id ? cleaned : x) : [...list, cleaned];
     const next = { ...db, teams: db.teams.map(t => t.id === team.id ? { ...t, tactics: newList } : t) };
     setDB(next); await storage.set(DB_KEY, next);
     setTactic(cleaned);
+    setShowSaveDialog(false);
   };
 
   const saveTacticNotes = useCallback(() => {
@@ -1580,11 +1591,15 @@ function TacticsView({ team, user, db, setDB }) {
 
   const deleteTactic = async (tid) => {
     if (!write) return;
-    if (!confirm("Slette taktikken?")) return;
     const newList = (team.tactics || []).filter(x => x.id !== tid);
     const next = { ...db, teams: db.teams.map(t => t.id === team.id ? { ...t, tactics: newList } : t) };
     setDB(next); await storage.set(DB_KEY, next);
     if (tactic.id === tid) setTactic(makeFresh("4-4-2"));
+  };
+
+  const handleConfirmDelete = async () => {
+    await deleteTactic(tactic.id);
+    setShowDeleteDialog(false);
   };
 
   const newTactic = () => { if (!write) return; setTactic(makeFresh(tactic.formation || "4-4-2")); setShowSaved(false); };
@@ -1639,21 +1654,21 @@ function TacticsView({ team, user, db, setDB }) {
               style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
               <Activity className="w-3.5 h-3.5 inline mr-1" /> Auto
             </button>
-            <button onClick={saveTactic}
+            {!tactic.isNew && (
+              <button onClick={() => setShowDeleteDialog(true)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.35)", color: "#f87171" }}>
+                <Trash2 className="w-3.5 h-3.5 inline mr-1" /> Slett
+              </button>
+            )}
+            <button onClick={openSaveDialog}
               className="px-3 py-1.5 rounded-lg text-xs font-bold"
               style={{ background: "rgba(132,204,22,0.15)", border: "1px solid rgba(132,204,22,0.4)", color: "#84cc16" }}>
-              <Save className="w-3.5 h-3.5 inline mr-1" /> {tactic.isNew ? "Lagre ny" : "Lagre"}
+              <Save className="w-3.5 h-3.5 inline mr-1" /> Lagre
             </button>
           </div>
         )}
       </div>
-      {write && tactic.isNew && (
-        <div className="mb-3 flex items-center gap-2 text-xs rounded-lg px-3 py-2"
-          style={{ color: "#fbbf24", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
-          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-          Ny taktikk — ikke lagret ennå. Gi den et navn og trykk «Lagre ny».
-        </div>
-      )}
 
       {/* ===== MAIN: PITCH + SIDEBAR ===== */}
       <div className="flex gap-2 items-start">
@@ -1972,6 +1987,71 @@ function TacticsView({ team, user, db, setDB }) {
           usedPlayerIds={tactic.slots.filter(s => s.id !== showAssign && s.playerId).map(s => s.playerId)}
           onAssign={(pid) => assignPlayer(showAssign, pid)}
           onClose={() => setShowAssign(null)} />
+      )}
+
+      {/* ===== SAVE DIALOG ===== */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setShowSaveDialog(false)}>
+          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3"
+            style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
+            onClick={e => e.stopPropagation()}>
+            <div className="font-bold text-white text-sm">Lagre taktikk</div>
+            <div>
+              <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>NAVN</label>
+              <input
+                value={saveName}
+                onChange={e => setSaveName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleConfirmSave()}
+                placeholder="f.eks. Presstrykk 4-3-3"
+                autoFocus
+                className="w-full rounded-lg px-3 py-2 text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16 }}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowSaveDialog(false)}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+                Avbryt
+              </button>
+              <button onClick={handleConfirmSave}
+                disabled={!saveName.trim()}
+                className="flex-1 py-2 rounded-lg text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
+                Lagre
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== DELETE CONFIRM DIALOG ===== */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setShowDeleteDialog(false)}>
+          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3"
+            style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
+            onClick={e => e.stopPropagation()}>
+            <div className="font-bold text-white text-sm">Slett taktikk</div>
+            <div className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Er du sikker på at du vil slette <span className="text-white font-semibold">«{tactic.name}»</span>? Dette kan ikke angres.
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowDeleteDialog(false)}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+                Avbryt
+              </button>
+              <button onClick={handleConfirmDelete}
+                className="flex-1 py-2 rounded-lg text-sm font-bold"
+                style={{ background: "rgba(239,68,68,0.9)", color: "#fff" }}>
+                Slett
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
     </div>
