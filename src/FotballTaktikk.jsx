@@ -1081,6 +1081,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
           onClose={() => setShowAssign(null)} />
       )}
     </div>
+    </div>
   );
 }
 
