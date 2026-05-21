@@ -880,6 +880,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [overwriteId, setOverwriteId] = useState("");
+  const [saveMode, setSaveMode] = useState("new");
 
   useEffect(() => { selectedPlayerRef.current = selectedPlayerId; }, [selectedPlayerId]);
 
@@ -893,24 +894,24 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   }, [db, setDB, team.id]);
 
   const handleSaveDialog = () => {
-    const existing = savedTactics.find(t => t.id === tactic.id);
-    setSaveName(existing ? existing.name : (tactic.name || tactic.formation || ""));
-    setOverwriteId(existing ? existing.id : "");
+    setSaveName(tactic.name || tactic.formation || "");
+    setOverwriteId(savedTactics[0]?.id || "");
+    setSaveMode("new");
     setShowSaveDialog(true);
   };
 
   const handleConfirmSave = () => {
-    const name = saveName.trim();
-    if (!name) return;
     let newList;
     let savedId;
-    if (overwriteId) {
+    if (saveMode === "overwrite" && overwriteId) {
       savedId = overwriteId;
-      const updated = { ...tactic, id: overwriteId, name };
+      const updated = { ...tactic, id: overwriteId, name: savedTactics.find(t => t.id === overwriteId)?.name || tactic.name };
       newList = (team.tactics || []).map(t => t.id === overwriteId ? updated : t);
       setTactic(updated);
       setDropVal(`tactic:${overwriteId}`);
     } else {
+      const name = saveName.trim();
+      if (!name) return;
       savedId = uid();
       const newT = { ...tactic, id: savedId, name };
       newList = [...(team.tactics || []), newT];
@@ -1322,29 +1323,47 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
           onClick={e => e.stopPropagation()}>
           <div className="font-bold text-white text-sm">Lagre taktikk</div>
 
-          <div>
-            <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>NAVN</label>
-            <input
-              value={saveName}
-              onChange={e => setSaveName(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleConfirmSave()}
-              placeholder="f.eks. Presstrykk 4-3-3"
-              autoFocus
-              className="w-full rounded-lg px-3 py-2 text-white outline-none"
-              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16 }}
-            />
+          <div className="flex gap-2">
+            <button
+              onClick={() => setSaveMode("new")}
+              className="flex-1 py-2 rounded-lg text-sm font-semibold"
+              style={{ background: saveMode === "new" ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.07)", border: `1px solid ${saveMode === "new" ? "#84cc16" : "rgba(255,255,255,0.15)"}`, color: saveMode === "new" ? "#a3e635" : "rgba(255,255,255,0.55)" }}>
+              Lagre ny kopi
+            </button>
+            {savedTactics.length > 0 && (
+              <button
+                onClick={() => setSaveMode("overwrite")}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: saveMode === "overwrite" ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.07)", border: `1px solid ${saveMode === "overwrite" ? "#84cc16" : "rgba(255,255,255,0.15)"}`, color: saveMode === "overwrite" ? "#a3e635" : "rgba(255,255,255,0.55)" }}>
+                Lagre over eksisterende
+              </button>
+            )}
           </div>
 
-          {savedTactics.length > 0 && (
+          {saveMode === "new" && (
             <div>
-              <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>OVERSKRIV EKSISTERENDE (valgfritt)</label>
+              <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>NAVN</label>
+              <input
+                value={saveName}
+                onChange={e => setSaveName(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleConfirmSave()}
+                placeholder="f.eks. Presstrykk 4-3-3"
+                autoFocus
+                className="w-full rounded-lg px-3 py-2 text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16 }}
+              />
+            </div>
+          )}
+
+          {saveMode === "overwrite" && savedTactics.length > 0 && (
+            <div>
+              <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>VELG TAKTIKK Å OVERSKRIVE</label>
               <select
                 value={overwriteId}
                 onChange={e => setOverwriteId(e.target.value)}
                 className="w-full rounded-lg px-3 py-2 text-sm outline-none"
                 style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#e2e8f0", fontSize: 16 }}
               >
-                <option value="" style={{ background: "#0d2340" }}>— Lagre som ny —</option>
                 {savedTactics.map(t => (
                   <option key={t.id} value={t.id} style={{ background: "#0d2340" }}>{t.name} — {t.formation}</option>
                 ))}
@@ -1359,7 +1378,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
               Avbryt
             </button>
             <button onClick={handleConfirmSave}
-              disabled={!saveName.trim()}
+              disabled={saveMode === "new" ? !saveName.trim() : !overwriteId}
               className="flex-1 py-2 rounded-lg text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
               Lagre
             </button>
@@ -1602,6 +1621,8 @@ function TacticsView({ team, user, db, setDB }) {
   const [showSaved, setShowSaved] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveName, setSaveName] = useState("");
+  const [saveMode, setSaveMode] = useState("new");
+  const [overwriteId, setOverwriteId] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // ---- sidebar click-to-select state ----
@@ -1778,20 +1799,33 @@ function TacticsView({ team, user, db, setDB }) {
 
   const openSaveDialog = () => {
     if (!write) return;
+    const list = team.tactics || [];
     setSaveName(tactic.name || "");
+    setSaveMode("new");
+    setOverwriteId(list[0]?.id || "");
     setShowSaveDialog(true);
   };
 
   const handleConfirmSave = async () => {
-    const name = saveName.trim();
-    if (!name) return;
     const list = team.tactics || [];
-    const cleaned = { ...tactic, name }; delete cleaned.isNew;
-    const exists = list.some(t => t.id === tactic.id);
-    const newList = exists ? list.map(x => x.id === tactic.id ? cleaned : x) : [...list, cleaned];
+    let newList;
+    let saved;
+    if (saveMode === "overwrite" && overwriteId) {
+      const existing = list.find(t => t.id === overwriteId);
+      const cleaned = { ...tactic, id: overwriteId, name: existing?.name || tactic.name }; delete cleaned.isNew;
+      newList = list.map(x => x.id === overwriteId ? cleaned : x);
+      saved = cleaned;
+    } else {
+      const name = saveName.trim();
+      if (!name) return;
+      const cleaned = { ...tactic, id: tactic.isNew ? uid() : tactic.id, name }; delete cleaned.isNew;
+      const exists = list.some(t => t.id === cleaned.id);
+      newList = exists ? list.map(x => x.id === cleaned.id ? cleaned : x) : [...list, cleaned];
+      saved = cleaned;
+    }
     const next = { ...db, teams: db.teams.map(t => t.id === team.id ? { ...t, tactics: newList } : t) };
     setDB(next); await storage.set(DB_KEY, next);
-    setTactic(cleaned);
+    setTactic(saved);
     setShowSaveDialog(false);
   };
 
@@ -2212,18 +2246,55 @@ function TacticsView({ team, user, db, setDB }) {
             style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
             onClick={e => e.stopPropagation()}>
             <div className="font-bold text-white text-sm">Lagre taktikk</div>
-            <div>
-              <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>NAVN</label>
-              <input
-                value={saveName}
-                onChange={e => setSaveName(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleConfirmSave()}
-                placeholder="f.eks. Presstrykk 4-3-3"
-                autoFocus
-                className="w-full rounded-lg px-3 py-2 text-white outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16 }}
-              />
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSaveMode("new")}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: saveMode === "new" ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.07)", border: `1px solid ${saveMode === "new" ? "#84cc16" : "rgba(255,255,255,0.15)"}`, color: saveMode === "new" ? "#a3e635" : "rgba(255,255,255,0.55)" }}>
+                Lagre ny kopi
+              </button>
+              {(team.tactics || []).length > 0 && (
+                <button
+                  onClick={() => setSaveMode("overwrite")}
+                  className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                  style={{ background: saveMode === "overwrite" ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.07)", border: `1px solid ${saveMode === "overwrite" ? "#84cc16" : "rgba(255,255,255,0.15)"}`, color: saveMode === "overwrite" ? "#a3e635" : "rgba(255,255,255,0.55)" }}>
+                  Lagre over eksisterende
+                </button>
+              )}
             </div>
+
+            {saveMode === "new" && (
+              <div>
+                <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>NAVN</label>
+                <input
+                  value={saveName}
+                  onChange={e => setSaveName(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleConfirmSave()}
+                  placeholder="f.eks. Presstrykk 4-3-3"
+                  autoFocus
+                  className="w-full rounded-lg px-3 py-2 text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16 }}
+                />
+              </div>
+            )}
+
+            {saveMode === "overwrite" && (team.tactics || []).length > 0 && (
+              <div>
+                <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>VELG TAKTIKK Å OVERSKRIVE</label>
+                <select
+                  value={overwriteId}
+                  onChange={e => setOverwriteId(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#e2e8f0", fontSize: 16 }}
+                >
+                  {(team.tactics || []).map(t => (
+                    <option key={t.id} value={t.id} style={{ background: "#0d2340" }}>{t.name} — {t.formation}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <button onClick={() => setShowSaveDialog(false)}
                 className="flex-1 py-2 rounded-lg text-sm font-semibold"
@@ -2231,7 +2302,7 @@ function TacticsView({ team, user, db, setDB }) {
                 Avbryt
               </button>
               <button onClick={handleConfirmSave}
-                disabled={!saveName.trim()}
+                disabled={saveMode === "new" ? !saveName.trim() : !overwriteId}
                 className="flex-1 py-2 rounded-lg text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
                 Lagre
               </button>
