@@ -1644,106 +1644,83 @@ function TacticsView({ team, user, db, setDB }) {
   , [team.players]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
+    <div className="min-h-screen" style={{ background: "linear-gradient(155deg, #08111e 0%, #0d2340 45%, #08111e 100%)" }}>
+    <div className="max-w-7xl mx-auto px-3 py-4">
       {!write && <ReadOnlyBanner />}
 
       {/* ===== TOP BAR ===== */}
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div className="flex items-center gap-2 flex-wrap min-w-0">
           <input value={tactic.name}
             onChange={e => write && setTactic({ ...tactic, name: e.target.value })}
             disabled={!write}
             placeholder="Navn på taktikk"
-            className="bg-white border border-gray-200 px-3 py-2 rounded-lg text-gray-900 font-display text-lg outline-none focus:border-lime-400/50 w-40 sm:w-52 disabled:opacity-70" />
+            className="outline-none font-display text-base disabled:opacity-70"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 10px", color: "#fff", width: 130, fontSize: 16 }} />
           <select
             value={tactic.formation}
             onChange={e => write && switchFormation(e.target.value)}
             disabled={!write}
-            className="px-3 py-2 rounded-lg bg-white border border-gray-200 text-lime-600 font-display text-base outline-none focus:border-lime-400/50 disabled:opacity-50 cursor-pointer"
+            className="outline-none cursor-pointer font-display text-base disabled:opacity-50"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, padding: "6px 10px", color: "#84cc16", fontSize: 16 }}
           >
             {Object.keys(FORMATIONS).map(key => (
-              <option key={key} value={key}>{key} — {FORMATION_LABELS[key]}</option>
+              <option key={key} value={key} style={{ background: "#0d2340" }}>{key} — {FORMATION_LABELS[key]}</option>
             ))}
           </select>
-          {(team.tactics || []).length > 0 && (
-            <button onClick={() => setShowSaved(true)}
-              className="px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-gray-300 text-gray-700 text-sm flex items-center gap-2">
-              <ClipboardList className="w-4 h-4" />
-              <span className="hidden sm:inline">Lagrede</span>
-              <span className="font-mono text-xs text-lime-400">{(team.tactics || []).length}</span>
-            </button>
-          )}
+          <button onClick={() => setShowFormations(true)}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
+            Bytt
+          </button>
         </div>
         {write && (
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={newTactic}
-              className="px-3 py-2 rounded-lg bg-white border border-gray-200 hover:border-lime-400/50 text-gray-700 text-sm flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Ny
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
+              <Plus className="w-3.5 h-3.5 inline mr-1" /> Ny
             </button>
             <button onClick={autoAssign}
-              className="px-3 py-2 rounded-lg border border-gray-200 hover:border-lime-400/50 text-gray-700 text-sm flex items-center gap-2">
-              <Activity className="w-4 h-4" /> Auto-tilord
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.7)" }}>
+              <Activity className="w-3.5 h-3.5 inline mr-1" /> Auto
             </button>
             <button onClick={saveTactic}
-              className="px-4 py-2 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950 font-bold text-sm flex items-center gap-2 shadow-lg shadow-lime-400/20">
-              <Save className="w-4 h-4" /> {tactic.isNew ? "Lagre ny" : "Lagre"}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold"
+              style={{ background: "rgba(132,204,22,0.15)", border: "1px solid rgba(132,204,22,0.4)", color: "#84cc16" }}>
+              <Save className="w-3.5 h-3.5 inline mr-1" /> {tactic.isNew ? "Lagre ny" : "Lagre"}
             </button>
           </div>
         )}
       </div>
-      {/* Unsaved indicator */}
       {write && tactic.isNew && (
-        <div className="mb-3 flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <div className="mb-3 flex items-center gap-2 text-xs rounded-lg px-3 py-2"
+          style={{ color: "#fbbf24", background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)" }}>
           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
           Ny taktikk — ikke lagret ennå. Gi den et navn og trykk «Lagre ny».
         </div>
       )}
 
-      {/* ===== PLAYER STRIP (mobile: above pitch; desktop: sidebar) ===== */}
+      {/* ===== MAIN: PITCH + SIDEBAR ===== */}
+      <div className="flex gap-2 items-start">
 
-      {/* Mobile horizontal strip */}
-      <div className="lg:hidden mb-3">
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className="text-xs font-semibold text-gray-500 tracking-wider">STALL</span>
-          {write && <span className="text-[10px] text-lime-600">— dra ned på banen</span>}
-        </div>
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin">
-          {sortedPlayers.length === 0 && (
-            <div className="text-xs text-slate-500 italic py-2 px-1">Ingen spillere registrert</div>
-          )}
-          {sortedPlayers.map(p => {
-            const onPitch = tactic.slots.some(s => s.playerId === p.id);
-            const isDraggingThis = sidebarDrag?.playerId === p.id;
-            return (
-              <div
-                key={p.id}
-                onPointerDown={(e) => startSidebarDrag(e, p)}
-                className={`flex-shrink-0 flex flex-col items-center gap-0.5 px-1 py-1 transition-all no-select ${write ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${isDraggingThis ? "opacity-40 scale-95" : ""}`}
-                style={{ minWidth: 56, touchAction: "none" }}
-              >
-                <div className="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold"
-                  style={{ borderColor: onPitch ? "#84cc16" : "#475569", color: onPitch ? "#84cc16" : "#94a3b8" }}>
-                  {p.number || ""}
-                </div>
-                <div className="text-[10px] text-white font-semibold max-w-[52px] truncate text-center leading-tight">
-                  {p.name.split(" ")[0]}
-                </div>
-                {onPitch && <div className="w-1.5 h-1.5 rounded-full bg-lime-400" />}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-[1fr_260px] gap-4">
         {/* ===== PITCH ===== */}
-        <div>
+        <div className="flex-1 min-w-0">
           {write && (
-            <div className="flex items-center gap-2 mb-3 p-1 bg-white border border-gray-200 rounded-xl w-fit">
-              <ModeBtn active={mode === "move"} onClick={() => setMode("move")} icon={<Move className="w-4 h-4" />}>Flytt</ModeBtn>
-              <ModeBtn active={mode === "arrow"} onClick={() => setMode("arrow")} icon={<ArrowRight className="w-4 h-4" />}>Piler</ModeBtn>
+            <div className="flex items-center gap-1.5 mb-2">
+              <button onClick={() => setMode("move")}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1"
+                style={{ background: mode === "move" ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.07)", border: `1px solid ${mode === "move" ? "#84cc16" : "rgba(255,255,255,0.15)"}`, color: mode === "move" ? "#84cc16" : "rgba(255,255,255,0.6)" }}>
+                <Move className="w-3.5 h-3.5" /> Flytt
+              </button>
+              <button onClick={() => setMode("arrow")}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1"
+                style={{ background: mode === "arrow" ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.07)", border: `1px solid ${mode === "arrow" ? "#84cc16" : "rgba(255,255,255,0.15)"}`, color: mode === "arrow" ? "#84cc16" : "rgba(255,255,255,0.6)" }}>
+                <ArrowRight className="w-3.5 h-3.5" /> Piler
+              </button>
               {tactic.arrows.length > 0 && (
-                <button onClick={clearArrows} className="px-3 py-1.5 text-xs text-slate-400 hover:text-red-400">Nullstill</button>
+                <button onClick={clearArrows} className="px-2 py-1.5 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>Nullstill</button>
               )}
             </div>
           )}
@@ -1751,7 +1728,6 @@ function TacticsView({ team, user, db, setDB }) {
           <div
             ref={pitchRef}
             onPointerDown={(e) => {
-              // In arrow mode, tapping empty pitch area (not a slot) also starts an arrow
               if (!write || mode !== "arrow" || drawingArrow || draggingSlot) return;
               const { x, y } = pitchCoords(e.clientX, e.clientY);
               setDrawingArrow({ slotId: null, fromX: x, fromY: y, toX: x, toY: y });
@@ -1759,8 +1735,8 @@ function TacticsView({ team, user, db, setDB }) {
             }}
             onPointerMove={onPitchPointerMove}
             onPointerUp={onPitchPointerUp}
-            className="relative w-full pitch-grad shadow-2xl no-select border-2 border-white/20 rounded-2xl overflow-hidden"
-            style={{ aspectRatio: "68 / 100", touchAction: "none" }}
+            className="relative w-full pitch-grad shadow-2xl no-select rounded-xl overflow-hidden"
+            style={{ aspectRatio: "68 / 100", touchAction: "none", border: "1.5px solid rgba(255,255,255,0.15)" }}
           >
             <PitchMarkings />
 
@@ -1790,9 +1766,9 @@ function TacticsView({ team, user, db, setDB }) {
             {write && tactic.arrows.map(a => (
               <button key={"del-" + a.id}
                 onClick={(e) => { e.stopPropagation(); removeArrow(a.id); }}
-                className="absolute w-5 h-5 rounded-full bg-slate-950/90 border border-yellow-400/50 text-yellow-400 flex items-center justify-center hover:bg-red-500 hover:text-white"
-                style={{ left: `${a.toX}%`, top: `${a.toY}%`, transform: "translate(-50%,-50%) translate(10px,-10px)" }}>
-                <X className="w-3 h-3" />
+                className="absolute flex items-center justify-center rounded-full"
+                style={{ left: `${a.toX}%`, top: `${a.toY}%`, transform: "translate(-50%,-50%) translate(10px,-10px)", width: 18, height: 18, background: "rgba(239,68,68,0.85)", border: "1.5px solid rgba(255,255,255,0.6)", zIndex: 20 }}>
+                <X className="w-2.5 h-2.5 text-white" />
               </button>
             ))}
 
@@ -1816,37 +1792,29 @@ function TacticsView({ team, user, db, setDB }) {
                     zIndex: isDragging ? 50 : 10,
                   }}
                 >
-                  <div className={`flex flex-col items-center pointer-events-none transition-transform ${isDragging ? "scale-110" : isDropTarget ? "scale-105" : ""}`} style={{ gap: 3 }}>
-                    {/* Drop target ring */}
-                    {isDropTarget && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 rounded-full border-2 border-white animate-ping opacity-50" />
-                      </div>
-                    )}
-                    {/* Jersey circle */}
+                  <div className={`flex flex-col items-center pointer-events-none transition-transform ${isDragging ? "scale-110" : isDropTarget ? "scale-105" : ""}`} style={{ gap: 2 }}>
+                    {/* FM jersey circle */}
                     <div
-                      className="w-10 h-10 sm:w-11 sm:h-11 rounded-full flex items-center justify-center font-bold text-white shadow-lg"
+                      className="rounded-full flex items-center justify-center font-bold shadow-lg"
                       style={{
-                        background: player
-                          ? "linear-gradient(160deg, #c0392b 0%, #96281b 100%)"
-                          : "rgba(0,0,0,0.35)",
-                        border: isDropTarget
-                          ? "2.5px solid #fff"
-                          : player
-                            ? "2.5px solid rgba(255,255,255,0.5)"
-                            : `2px dashed ${posMeta?.color || "#fff"}80`,
-                        boxShadow: "0 3px 10px rgba(0,0,0,0.45)",
+                        width: 30, height: 30,
+                        background: player ? "linear-gradient(160deg,#c0392b 0%,#96281b 100%)" : "rgba(0,0,0,0.4)",
+                        border: isDropTarget ? "2px solid #fff" : player ? "2px solid rgba(255,255,255,0.55)" : `2px dashed ${posMeta?.color || "#fff"}70`,
                         color: player ? "#fff" : (posMeta?.color || "#fff"),
+                        fontSize: 10, fontWeight: "800",
                       }}
                     >
-                      <span className="font-mono text-sm leading-none">
-                        {player ? (player.number || "") : slot.role}
-                      </span>
+                      {player ? (player.number || "") : slot.role}
                     </div>
-                    <div className="text-center" style={{ minWidth: 42 }}>
-                      <div className="font-semibold text-white truncate" style={{ fontSize: 10, maxWidth: 58, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
-                        {player ? player.name.split(" ").slice(-1)[0] : ""}
-                      </div>
+                    {/* FM label card */}
+                    <div className="flex items-center gap-1 rounded"
+                      style={{ background: "rgba(8,12,22,0.9)", border: "1px solid rgba(255,255,255,0.18)", padding: "1px 4px", minWidth: 44 }}>
+                      {player && <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />}
+                      <div style={{ fontSize: 8, fontWeight: "700", color: posMeta?.color || "#84cc16", whiteSpace: "nowrap" }}>{slot.role}</div>
+                    </div>
+                    {/* Player name */}
+                    <div style={{ fontSize: 9, fontWeight: "600", color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,1)", maxWidth: 56, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {player ? player.name.split(" ").slice(-1)[0] : ""}
                     </div>
                   </div>
                 </div>
@@ -1855,70 +1823,52 @@ function TacticsView({ team, user, db, setDB }) {
           </div>
 
           {write && (
-            <div className="text-xs text-slate-500 mt-2 text-center">
-              {mode === "move"
-                ? "Dra en spiller for å flytte · Dra fra stallen til banen · Trykk for å tilordne"
-                : "Dra fra en spiller for å tegne et løp"}
+            <div className="text-[10px] mt-1.5 text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
+              {mode === "move" ? "Dra brikke · Dra fra stall · Trykk for tilordning" : "Dra fra spiller for å tegne løp"}
             </div>
           )}
         </div>
 
-        {/* ===== DESKTOP SIDEBAR ===== */}
-        <div className="hidden lg:flex flex-col gap-3">
-          <div className="bg-white border border-gray-200 rounded-xl p-3">
-            <div className="text-xs font-semibold text-gray-500 tracking-wider mb-2 flex items-center justify-between">
-              <span>SPILLERSTALL ({team.players.length})</span>
-              {write && <span className="text-lime-600 font-normal">dra inn på banen</span>}
-            </div>
-            <div className="overflow-y-auto scrollbar-thin space-y-1 pr-1" style={{ maxHeight: "calc(100vh - 260px)" }}>
-              {sortedPlayers.length === 0 && (
-                <div className="text-xs text-slate-500 italic py-2">Ingen spillere</div>
-              )}
-              {sortedPlayers.map(p => {
-                const onPitch = tactic.slots.some(s => s.playerId === p.id);
-                const isDraggingThis = sidebarDrag?.playerId === p.id;
-                const posMeta = POSITION_BY_CODE[p.positions[0]];
-                return (
-                  <div
-                    key={p.id}
-                    onPointerDown={(e) => startSidebarDrag(e, p)}
-                    style={{ touchAction: "none" }}
-                    className={`flex items-center gap-2.5 px-2.5 py-2 rounded-lg border transition-all no-select ${
-                      write ? "cursor-grab active:cursor-grabbing" : "cursor-default"
-                    } ${onPitch
-                      ? "bg-lime-400/10 border-lime-400/30"
-                      : "bg-slate-950/50 border-slate-800 hover:border-slate-700"
-                    } ${isDraggingThis ? "opacity-40" : ""}`}
-                  >
-                    {/* Number dot */}
-                    <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center font-mono text-xs font-bold flex-shrink-0"
-                      style={{
-                        borderColor: onPitch ? "#84cc16" : (posMeta?.color || "#64748b"),
-                        color: onPitch ? "#84cc16" : (posMeta?.color || "#94a3b8"),
-                        backgroundColor: "#0f172a",
-                      }}>
-                      {p.number || ""}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white text-sm truncate leading-tight">{p.name}</div>
-                      <div className="text-[10px] text-slate-500 font-mono truncate">{p.positions.join(" · ")}</div>
-                    </div>
-                    {onPitch
-                      ? <Check className="w-3.5 h-3.5 text-lime-400 flex-shrink-0" />
-                      : write && <Move className="w-3 h-3 text-slate-600 flex-shrink-0" />
-                    }
-                  </div>
-                );
-              })}
-            </div>
+        {/* ===== RIGHT SIDEBAR (always visible) ===== */}
+        <div style={{ width: 110, flexShrink: 0 }}>
+          <div className="text-[9px] font-bold tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>
+            STALL ({team.players.length})
           </div>
-
-          <div className="bg-white border border-gray-200 rounded-xl p-3 text-xs text-gray-500 space-y-1.5">
-            <div className="font-semibold text-gray-700 tracking-wider mb-1.5">HJELP</div>
-            <div>• <span className="text-lime-400">Dra fra stall:</span> Slipp på brikke</div>
-            <div>• <span className="text-lime-400">Dra brikke:</span> Flytt fritt på banen</div>
-            <div>• <span className="text-lime-400">Trykk brikke:</span> Velg fra liste</div>
-            <div>• <span className="text-lime-400">Pil-modus:</span> Tegn løp</div>
+          <div className="space-y-1 overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 180px)" }}>
+            {sortedPlayers.length === 0 && (
+              <div className="text-[10px] italic" style={{ color: "rgba(255,255,255,0.3)" }}>Ingen spillere</div>
+            )}
+            {sortedPlayers.map(p => {
+              const onPitch = tactic.slots.some(s => s.playerId === p.id);
+              const isDraggingThis = sidebarDrag?.playerId === p.id;
+              const posMeta = POSITION_BY_CODE[p.positions[0]];
+              return (
+                <div key={p.id}
+                  onPointerDown={(e) => startSidebarDrag(e, p)}
+                  className="no-select flex items-center gap-1.5 rounded-lg"
+                  style={{
+                    opacity: isDraggingThis ? 0.3 : 1,
+                    cursor: write ? "grab" : "default",
+                    touchAction: "none",
+                    padding: "4px 5px",
+                    background: onPitch ? "rgba(132,204,22,0.08)" : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${onPitch ? "rgba(132,204,22,0.2)" : "rgba(255,255,255,0.06)"}`,
+                  }}
+                >
+                  <div className="flex items-center justify-center rounded-full font-mono font-bold flex-shrink-0"
+                    style={{ width: 24, height: 24, background: "#0f172a", border: `1.5px solid ${onPitch ? "#84cc16" : (posMeta?.color || "#475569")}`, color: onPitch ? "#84cc16" : (posMeta?.color || "#94a3b8"), fontSize: 9 }}>
+                    {p.number || ""}
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 10, fontWeight: "600", color: onPitch ? "rgba(255,255,255,0.45)" : "#fff", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {p.name.split(" ").slice(-1)[0]}
+                    </div>
+                    <div style={{ fontSize: 8, color: posMeta?.color || "#64748b" }}>{p.positions[0] || ""}</div>
+                  </div>
+                  {onPitch && <Check className="flex-shrink-0" style={{ width: 10, height: 10, color: "#84cc16" }} />}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -2107,6 +2057,7 @@ function TacticsView({ team, user, db, setDB }) {
           onAssign={(pid) => assignPlayer(showAssign, pid)}
           onClose={() => setShowAssign(null)} />
       )}
+    </div>
     </div>
   );
 }
