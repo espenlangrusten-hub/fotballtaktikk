@@ -559,7 +559,14 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
         <>
           <div className="text-xs font-bold tracking-widest mt-6 mb-3" style={{ color: "#475569" }}>VELG LAG</div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...teams].sort((a, b) => sortTeamNames(a.name, b.name)).map(team => (
+            {[...teams].sort((a, b) => {
+              const nc = a.name.localeCompare(b.name, "nb", { sensitivity: "base" });
+              if (nc !== 0) return nc;
+              const av = parseInt(a.variant) || 0;
+              const bv = parseInt(b.variant) || 0;
+              if (av !== bv) return av - bv;
+              return (a.variant || "").localeCompare(b.variant || "", "nb");
+            }).map(team => (
               <TeamCard key={team.id} team={team} user={user} onClick={() => onOpenTeam(team.id)} />
             ))}
           </div>
