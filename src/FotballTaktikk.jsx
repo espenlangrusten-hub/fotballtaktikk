@@ -223,6 +223,23 @@ const FORMATION_NOTES = {
 const uid = () => Math.random().toString(36).slice(2, 10);
 const roleGroup = (code) => POSITION_BY_CODE[code]?.group || "ATT";
 
+const GROUP_ORDER = { K: 0, DEF: 1, MID: 2, ATT: 3 };
+const sortPlayers = (players) => [...players].sort((a, b) => {
+  const ga = GROUP_ORDER[POSITION_BY_CODE[a.positions?.[0]]?.group] ?? 9;
+  const gb = GROUP_ORDER[POSITION_BY_CODE[b.positions?.[0]]?.group] ?? 9;
+  if (ga !== gb) return ga - gb;
+  return (a.number || 999) - (b.number || 999);
+});
+
+const sortTeamNames = (a, b) => {
+  const aM = a.match(/^(.*?)(\d+)$/);
+  const bM = b.match(/^(.*?)(\d+)$/);
+  if (aM && bM && aM[1].trim().toLowerCase() === bM[1].trim().toLowerCase()) {
+    return parseInt(aM[2]) - parseInt(bM[2]);
+  }
+  return a.localeCompare(b, "nb", { sensitivity: "base" });
+};
+
 // ---------- STORAGE ----------
 const storage = {
   async get(key) {
@@ -542,7 +559,7 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
         <>
           <div className="text-xs font-bold tracking-widest mt-6 mb-3" style={{ color: "#475569" }}>VELG LAG</div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...teams].sort((a, b) => a.name.localeCompare(b.name, "nb", { numeric: true, sensitivity: "base" })).map(team => (
+            {[...teams].sort((a, b) => sortTeamNames(a.name, b.name)).map(team => (
               <TeamCard key={team.id} team={team} user={user} onClick={() => onOpenTeam(team.id)} />
             ))}
           </div>
@@ -1321,7 +1338,12 @@ function TeamPlayers({ team, user, db, setDB }) {
           </div>
           {team.players
             .slice()
-            .sort((a,b) => (a.number||999) - (b.number||999))
+            .sort((a, b) => {
+              const ga = GROUP_ORDER[POSITION_BY_CODE[a.positions?.[0]]?.group] ?? 9;
+              const gb = GROUP_ORDER[POSITION_BY_CODE[b.positions?.[0]]?.group] ?? 9;
+              if (ga !== gb) return ga - gb;
+              return (a.number || 999) - (b.number || 999);
+            })
             .map(p => (
               <PlayerRow key={p.id} player={p} writable={write}
                 playerStats={getPlayerStats(p.id)}
@@ -1697,7 +1719,7 @@ function TacticsView({ team, user, db, setDB }) {
 
   // Sorted roster
   const sortedPlayers = useMemo(() =>
-    [...team.players].sort((a,b) => (a.number||999) - (b.number||999))
+    sortPlayers(team.players)
   , [team.players]);
 
   return (
