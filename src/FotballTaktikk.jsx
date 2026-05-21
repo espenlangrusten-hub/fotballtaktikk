@@ -1266,6 +1266,27 @@ function TeamPlayers({ team, user, db, setDB }) {
     await update(t => ({ ...t, players: t.players.map(p => p.id === pid ? { ...p, ...patch } : p) }));
   };
 
+  const getPlayerStats = (pid) => {
+    const matches = team.matches || [];
+    let minutes = 0, goals = 0, yellow = 0, red = 0, ratings = [], matchCount = 0;
+    matches.filter(m => m.status === "finished").forEach(m => {
+      const mins = (m.playerMinutes || {})[pid];
+      if (mins === undefined) return;
+      matchCount++;
+      minutes += mins;
+      (m.events || []).forEach(ev => {
+        if (ev.playerId !== pid) return;
+        if (ev.type === "goal") goals++;
+        if (ev.type === "yellow") yellow++;
+        if (ev.type === "red") red++;
+      });
+      const r = (m.playerRatings || {})[pid];
+      if (r?.rating > 0) ratings.push(r.rating);
+    });
+    const avgRating = ratings.length ? (ratings.reduce((a,b) => a+b, 0) / ratings.length).toFixed(1) : null;
+    return { minutes, goals, yellow, red, avgRating, matchCount };
+  };
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
       {write && (
@@ -1303,6 +1324,7 @@ function TeamPlayers({ team, user, db, setDB }) {
             .sort((a,b) => (a.number||999) - (b.number||999))
             .map(p => (
               <PlayerRow key={p.id} player={p} writable={write}
+                playerStats={getPlayerStats(p.id)}
                 onRemove={() => removePlayer(p.id)}
                 onEdit={(patch) => editPlayer(p.id, patch)} />
           ))}
@@ -1316,7 +1338,7 @@ function TeamPlayers({ team, user, db, setDB }) {
   );
 }
 
-function PlayerRow({ player, writable, onRemove, onEdit }) {
+function PlayerRow({ player, writable, onRemove, onEdit, playerStats = {} }) {
   const [editing, setEditing] = useState(false);
   if (editing) {
     return (
@@ -1332,6 +1354,14 @@ function PlayerRow({ player, writable, onRemove, onEdit }) {
       </div>
       <div className="col-span-4">
         <div className="font-medium text-white">{player.name}</div>
+        {(playerStats.goals > 0 || playerStats.minutes > 0) && (
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            {playerStats.minutes > 0 && `${playerStats.minutes}min `}
+            {playerStats.goals > 0 && `⚽${playerStats.goals} `}
+            {playerStats.yellow > 0 && `🟨${playerStats.yellow} `}
+            {playerStats.red > 0 && `🟥${playerStats.red}`}
+          </div>
+        )}
       </div>
       <div className="col-span-6 flex flex-wrap gap-1.5">
         {player.positions.map(code => {
@@ -2102,6 +2132,584 @@ function TacticsView({ team, user, db, setDB }) {
         </div>
       )}
     </div>
+    </div>
+  );
+}
+
+// ============================================================
+// KAMP — Match management
+// ============================================================
+
+function TeamMatches({ team, user, db, setDB }) {
+  const write = canWrite(user, team.id);
+  const [showNew, setShowNew] = useState(false);
+  const [activeMatch, setActiveMatch] = useState(null);
+
+  // Form state for new match
+  const [opponent, setOpponent] = useState("");
+  const [halfDuration, setHalfDuration] = useState("45");
+  const [halves, setHalves] = useState("2");
+  const [tacticId, setTacticId] = useState("");
+
+  const matches = team.matches || [];
+  const savedTactics = team.tactics || [];
+
+  const saveDB = async (next) => { setDB(next); await storage.set(DB_KEY, next); };
+
+  const updateTeam = (mut) => {
+    const next = { ...db, teams: db.teams.map(t => t.id === team.id ? mut(t) : t) };
+    saveDB(next);
+  };
+
+  const startMatch = () => {
+    if (!opponent.trim()) return;
+    const tactic = savedTactics.find(t => t.id === tacticId) || savedTactics[0] || null;
+    const match = {
+      id: uid(),
+      opponent: opponent.trim(),
+      date: Date.now(),
+      halfDuration: parseInt(halfDuration) || 45,
+      halves: parseInt(halves) || 2,
+      homeScore: 0,
+      awayScore: 0,
+      status: "live",
+      tacticSnapshot: tactic ? { formation: tactic.formation, slots: tactic.slots } : null,
+      events: [],
+      subs: [],
+      playerRatings: {},
+      timerElapsed: 0,
+    };
+    updateTeam(t => ({ ...t, matches: [...(t.matches || []), match] }));
+    setShowNew(false);
+    setOpponent(""); setTacticId("");
+    setActiveMatch(match.id);
+  };
+
+  if (activeMatch) {
+    const match = (team.matches || []).find(m => m.id === activeMatch);
+    if (match) {
+      return (
+        <MatchView
+          match={match}
+          team={team}
+          user={user}
+          db={db}
+          setDB={setDB}
+          onBack={() => setActiveMatch(null)}
+        />
+      );
+    }
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6" style={{ color: "#fff" }}>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="text-xs font-bold tracking-widest text-lime-400 mb-1">KAMPHISTORIKK</div>
+          <h2 className="font-display text-2xl text-white">{team.name}</h2>
+        </div>
+        {write && (
+          <button onClick={() => setShowNew(true)}
+            className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-semibold text-sm flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Ny kamp
+          </button>
+        )}
+      </div>
+
+      {matches.length === 0 ? (
+        <div className="border-2 border-dashed rounded-2xl p-16 text-center" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+          <Trophy className="w-12 h-12 mx-auto mb-4" style={{ color: "rgba(255,255,255,0.2)" }} />
+          <div className="font-display text-2xl mb-2" style={{ color: "rgba(255,255,255,0.3)" }}>INGEN KAMPER ENNÅ</div>
+          {write && (
+            <button onClick={() => setShowNew(true)}
+              className="mt-4 px-5 py-2.5 rounded-xl bg-lime-400 text-slate-950 font-semibold text-sm inline-flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Start første kamp
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {[...matches].reverse().map(m => {
+            const d = new Date(m.date);
+            const dateStr = d.toLocaleDateString("nb-NO", { day: "numeric", month: "short", year: "numeric" });
+            return (
+              <button key={m.id} onClick={() => setActiveMatch(m.id)}
+                className="w-full text-left rounded-2xl p-4 transition-all"
+                style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(132,204,22,0.4)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-xs text-slate-500 mb-1">{dateStr}</div>
+                    <div className="font-semibold text-white text-sm">vs {m.opponent}</div>
+                    {m.tacticSnapshot && (
+                      <div className="text-xs text-slate-500 mt-0.5">{m.tacticSnapshot.formation}</div>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <div className="font-display text-2xl text-white">{m.homeScore} — {m.awayScore}</div>
+                    <div className={`text-xs font-bold mt-0.5 ${
+                      m.status === "live" ? "text-lime-400" :
+                      m.homeScore > m.awayScore ? "text-lime-400" :
+                      m.homeScore < m.awayScore ? "text-red-400" : "text-slate-400"
+                    }`}>
+                      {m.status === "live" ? "● LIVE" : m.homeScore > m.awayScore ? "SEIER" : m.homeScore < m.awayScore ? "TAP" : "UAVGJORT"}
+                    </div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* New match dialog */}
+      {showNew && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setShowNew(false)}>
+          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-4"
+            style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
+            onClick={e => e.stopPropagation()}>
+            <div className="font-bold text-white">Ny kamp</div>
+
+            <div>
+              <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>MOTSTANDER</label>
+              <input value={opponent} onChange={e => setOpponent(e.target.value)}
+                placeholder="Motstanderlag"
+                autoFocus
+                className="w-full rounded-lg px-3 py-2 text-white outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16 }} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>OMGANGSLENGDE (MIN)</label>
+                <input type="number" value={halfDuration} onChange={e => setHalfDuration(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16 }} />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>ANTALL OMGANGER</label>
+                <select value={halves} onChange={e => setHalves(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 text-white outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16, color: "#e2e8f0" }}>
+                  <option value="1" style={{ background: "#0d2340" }}>1 omgang</option>
+                  <option value="2" style={{ background: "#0d2340" }}>2 omganger</option>
+                </select>
+              </div>
+            </div>
+
+            {savedTactics.length > 0 && (
+              <div>
+                <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>TAKTIKK / STARTOPPSTILLING</label>
+                <select value={tacticId} onChange={e => setTacticId(e.target.value)}
+                  className="w-full rounded-lg px-3 py-2 outline-none"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16, color: "#e2e8f0" }}>
+                  <option value="" style={{ background: "#0d2340" }}>Ingen taktikk valgt</option>
+                  {savedTactics.map(t => (
+                    <option key={t.id} value={t.id} style={{ background: "#0d2340" }}>{t.name} — {t.formation}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setShowNew(false)}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+                Avbryt
+              </button>
+              <button onClick={startMatch} disabled={!opponent.trim()}
+                className="flex-1 py-2 rounded-lg text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
+                Start kamp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
+  const write = canWrite(user, team.id);
+
+  // Always read match from db so we get latest state
+  const match = (team.matches || []).find(m => m.id === initialMatch.id) || initialMatch;
+
+  const [timerRunning, setTimerRunning] = useState(match.status === "live");
+  const [timerMs, setTimerMs] = useState(match.timerElapsed || 0);
+  const timerRef = useRef(null);
+  const lastTickRef = useRef(Date.now());
+
+  const [subMode, setSubMode] = useState(false); // selecting sub
+  const [subOutPlayer, setSubOutPlayer] = useState(null); // playerId being replaced
+  const [showPostMatch, setShowPostMatch] = useState(false);
+  const [ratings, setRatings] = useState(match.playerRatings || {});
+
+  // Build current active lineup from snapshot + subs
+  const buildActiveLineup = () => {
+    if (!match.tacticSnapshot) return [];
+    let slots = match.tacticSnapshot.slots.map(s => ({ ...s }));
+    (match.subs || []).forEach(sub => {
+      const idx = slots.findIndex(s => s.playerId === sub.outId);
+      if (idx >= 0) slots[idx] = { ...slots[idx], playerId: sub.inId };
+    });
+    return slots;
+  };
+
+  const activeSlots = buildActiveLineup();
+  const activePIds = activeSlots.map(s => s.playerId).filter(Boolean);
+  const benchPlayers = team.players.filter(p => !activePIds.includes(p.id));
+
+  // Timer tick
+  useEffect(() => {
+    if (!timerRunning) return;
+    lastTickRef.current = Date.now();
+    timerRef.current = setInterval(() => {
+      const now = Date.now();
+      const delta = now - lastTickRef.current;
+      lastTickRef.current = now;
+      setTimerMs(ms => ms + delta);
+    }, 500);
+    return () => clearInterval(timerRef.current);
+  }, [timerRunning]);
+
+  const displayMinute = Math.floor(timerMs / 60000);
+
+  const saveMatch = async (patch) => {
+    const updated = { ...match, ...patch };
+    const next = {
+      ...db,
+      teams: db.teams.map(t => t.id === team.id
+        ? { ...t, matches: (t.matches || []).map(m => m.id === match.id ? updated : m) }
+        : t)
+    };
+    setDB(next);
+    await storage.set(DB_KEY, next);
+  };
+
+  const toggleTimer = () => {
+    if (!write) return;
+    if (timerRunning) {
+      saveMatch({ timerElapsed: timerMs });
+    }
+    setTimerRunning(r => !r);
+  };
+
+  const addGoal = (isHome) => {
+    if (!write) return;
+    const patch = isHome
+      ? { homeScore: match.homeScore + 1, events: [...match.events, { id: uid(), type: "goal", minute: displayMinute, isOpponent: false }] }
+      : { awayScore: match.awayScore + 1, events: [...match.events, { id: uid(), type: "goal", minute: displayMinute, isOpponent: true }] };
+    saveMatch(patch);
+  };
+
+  const removeGoal = (isHome) => {
+    if (!write) return;
+    const patch = isHome
+      ? { homeScore: Math.max(0, match.homeScore - 1) }
+      : { awayScore: Math.max(0, match.awayScore - 1) };
+    saveMatch(patch);
+  };
+
+  const addEvent = (playerId, type) => {
+    if (!write || !playerId) return;
+    saveMatch({ events: [...match.events, { id: uid(), type, playerId, minute: displayMinute }] });
+  };
+
+  const makeSub = (inId) => {
+    if (!subOutPlayer || !inId) return;
+    const newSub = { id: uid(), outId: subOutPlayer, inId, minute: displayMinute };
+    saveMatch({ subs: [...(match.subs || []), newSub] });
+    setSubOutPlayer(null);
+    setSubMode(false);
+  };
+
+  const endMatch = () => {
+    if (!write) return;
+    // Calculate player minutes
+    const allPlayers = match.tacticSnapshot?.slots.map(s => s.playerId).filter(Boolean) || [];
+    const totalMinutes = Math.floor(timerMs / 60000);
+    const playerMins = {};
+    allPlayers.forEach(pid => { playerMins[pid] = 0; });
+    // entry times: starters enter at 0
+    const entryTimes = {};
+    allPlayers.forEach(pid => { entryTimes[pid] = 0; });
+    // subs: out player exits, in player enters
+    (match.subs || []).forEach(sub => {
+      if (entryTimes[sub.outId] !== undefined) {
+        playerMins[sub.outId] = (playerMins[sub.outId] || 0) + (sub.minute - entryTimes[sub.outId]);
+        delete entryTimes[sub.outId];
+      }
+      entryTimes[sub.inId] = sub.minute;
+      playerMins[sub.inId] = 0;
+    });
+    // remaining players who are still on pitch
+    Object.keys(entryTimes).forEach(pid => {
+      playerMins[pid] = (playerMins[pid] || 0) + (totalMinutes - entryTimes[pid]);
+    });
+    saveMatch({ status: "finished", timerElapsed: timerMs, playerMinutes: playerMins });
+    setTimerRunning(false);
+    setShowPostMatch(true);
+  };
+
+  const saveRatings = () => {
+    saveMatch({ playerRatings: ratings });
+    setShowPostMatch(false);
+    onBack();
+  };
+
+  const playerById = (id) => team.players.find(p => p.id === id);
+
+  return (
+    <div className="min-h-screen" style={{ background: "#020617" }}>
+      <div className="px-3 pt-3 pb-8 max-w-lg mx-auto">
+        {/* Back + title */}
+        <div className="flex items-center gap-2 mb-4">
+          <button onClick={onBack} className="p-2 rounded-lg" style={{ color: "rgba(255,255,255,0.5)" }}>
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div className="flex-1">
+            <div className="text-xs text-slate-500">vs {match.opponent}</div>
+            <div className="text-sm font-semibold text-white">{new Date(match.date).toLocaleDateString("nb-NO", { day: "numeric", month: "short" })}</div>
+          </div>
+          {match.status === "live" && write && (
+            <button onClick={endMatch}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold"
+              style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)", color: "#f87171" }}>
+              Avslutt kamp
+            </button>
+          )}
+        </div>
+
+        {/* Score + timer */}
+        <div className="rounded-2xl p-4 mb-4 text-center" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <div className="flex items-center justify-center gap-4 mb-3">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-xs text-slate-400 font-semibold">{team.name}</span>
+              <div className="flex items-center gap-2">
+                {write && match.status === "live" && (
+                  <button onClick={() => removeGoal(true)} className="w-7 h-7 rounded-full text-slate-400 text-lg font-bold flex items-center justify-center"
+                    style={{ background: "rgba(255,255,255,0.07)" }}>−</button>
+                )}
+                <span className="font-display text-5xl text-white">{match.homeScore}</span>
+                {write && match.status === "live" && (
+                  <button onClick={() => addGoal(true)} className="w-7 h-7 rounded-full text-lime-400 text-lg font-bold flex items-center justify-center"
+                    style={{ background: "rgba(132,204,22,0.15)", border: "1px solid rgba(132,204,22,0.3)" }}>+</button>
+                )}
+              </div>
+            </div>
+            <div className="font-display text-3xl text-slate-500">—</div>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-xs text-slate-400 font-semibold">{match.opponent}</span>
+              <div className="flex items-center gap-2">
+                {write && match.status === "live" && (
+                  <button onClick={() => removeGoal(false)} className="w-7 h-7 rounded-full text-slate-400 text-lg font-bold flex items-center justify-center"
+                    style={{ background: "rgba(255,255,255,0.07)" }}>−</button>
+                )}
+                <span className="font-display text-5xl text-white">{match.awayScore}</span>
+                {write && match.status === "live" && (
+                  <button onClick={() => addGoal(false)} className="w-7 h-7 rounded-full text-lime-400 text-lg font-bold flex items-center justify-center"
+                    style={{ background: "rgba(132,204,22,0.15)", border: "1px solid rgba(132,204,22,0.3)" }}>+</button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {match.status === "live" ? (
+            <div className="flex items-center justify-center gap-3">
+              <button onClick={toggleTimer}
+                className="px-4 py-1.5 rounded-lg text-sm font-bold"
+                style={{
+                  background: timerRunning ? "rgba(239,68,68,0.15)" : "rgba(132,204,22,0.15)",
+                  border: `1px solid ${timerRunning ? "rgba(239,68,68,0.4)" : "rgba(132,204,22,0.4)"}`,
+                  color: timerRunning ? "#f87171" : "#84cc16",
+                }}>
+                {timerRunning ? "⏸ Stopp" : "▶ Start"}
+              </button>
+              <span className="font-mono text-white text-lg">{displayMinute}&apos;</span>
+              {timerRunning && <span className="w-2 h-2 rounded-full bg-lime-400 pulse-dot" />}
+            </div>
+          ) : (
+            <div className="text-sm text-slate-400">Slutt · {Math.floor((match.timerElapsed || 0) / 60000)}&apos;</div>
+          )}
+        </div>
+
+        {/* Lineup pitch (compact) */}
+        {activeSlots.length > 0 && (
+          <div className="mb-4">
+            <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>
+              {subMode && subOutPlayer ? "TRYKK PÅ INNBYTTER" : subMode ? "TRYKK PÅ SPILLER SOM GÅR UT" : "OPPSTILLING"}
+            </div>
+            <div className="relative w-full pitch-grad rounded-xl overflow-hidden no-select" style={{ aspectRatio: "68/80", touchAction: "none" }}>
+              {activeSlots.map(slot => {
+                const player = playerById(slot.playerId);
+                const posMeta = POSITION_BY_CODE[slot.role];
+                if (!player) return null;
+                const isSubOut = subMode && !subOutPlayer;
+                return (
+                  <div key={slot.id}
+                    onClick={() => {
+                      if (!write || match.status !== "live") return;
+                      if (subMode && !subOutPlayer) { setSubOutPlayer(slot.playerId); return; }
+                    }}
+                    className="absolute flex flex-col items-center"
+                    style={{ left: `${slot.x}%`, top: `${slot.y * 0.8}%`, transform: "translate(-50%,-50%)", cursor: isSubOut ? "pointer" : "default" }}>
+                    <div className="rounded-full flex items-center justify-center font-bold shadow-lg"
+                      style={{
+                        width: 28, height: 28,
+                        background: subOutPlayer === slot.playerId ? "#84cc16" : "linear-gradient(160deg,#c0392b 0%,#96281b 100%)",
+                        border: isSubOut ? "2px solid rgba(132,204,22,0.8)" : "2px solid rgba(255,255,255,0.55)",
+                        color: "#fff", fontSize: 9, fontWeight: "800",
+                      }}>
+                      {player.number || ""}
+                    </div>
+                    <div style={{ fontSize: 8, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,1)", maxWidth: 44, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {player.name.split(" ").slice(-1)[0]}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Bench / subs */}
+        {match.status === "live" && write && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-bold tracking-widest" style={{ color: "rgba(255,255,255,0.4)" }}>BENK</div>
+              <button
+                onClick={() => { setSubMode(s => !s); setSubOutPlayer(null); }}
+                className="text-xs px-2.5 py-1 rounded-lg font-semibold"
+                style={{
+                  background: subMode ? "rgba(132,204,22,0.15)" : "rgba(255,255,255,0.07)",
+                  border: `1px solid ${subMode ? "rgba(132,204,22,0.5)" : "rgba(255,255,255,0.15)"}`,
+                  color: subMode ? "#84cc16" : "rgba(255,255,255,0.6)",
+                }}>
+                {subMode ? "Avbryt bytte" : "Bytt spiller"}
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {benchPlayers.map(p => {
+                const posMeta = POSITION_BY_CODE[p.positions[0]];
+                return (
+                  <button key={p.id}
+                    onClick={() => {
+                      if (subMode && subOutPlayer) { makeSub(p.id); return; }
+                      // Long press for yellow/red — just tap to add event
+                    }}
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold"
+                    style={{
+                      background: subMode && subOutPlayer ? "rgba(132,204,22,0.1)" : "rgba(255,255,255,0.07)",
+                      border: `1px solid ${subMode && subOutPlayer ? "rgba(132,204,22,0.4)" : "rgba(255,255,255,0.12)"}`,
+                      color: "#fff",
+                    }}>
+                    <span style={{ color: posMeta?.color || "#64748b", fontSize: 9, fontWeight: "700" }}>{p.number || "—"}</span>
+                    {p.name.split(" ").slice(-1)[0]}
+                  </button>
+                );
+              })}
+              {benchPlayers.length === 0 && (
+                <div className="text-xs text-slate-600 italic">Ingen innbyttere</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Substitutions log */}
+        {(match.subs || []).length > 0 && (
+          <div className="mb-4">
+            <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>BYTTER</div>
+            <div className="space-y-1.5">
+              {(match.subs || []).map(sub => {
+                const outP = playerById(sub.outId);
+                const inP = playerById(sub.inId);
+                return (
+                  <div key={sub.id} className="flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+                    <span className="text-slate-500 font-mono text-xs w-8">{sub.minute}&apos;</span>
+                    <span style={{ color: "#f87171" }}>↑ {outP?.name || "?"}</span>
+                    <span style={{ color: "#84cc16" }}>↓ {inP?.name || "?"}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Events log */}
+        {match.events.filter(e => !e.isOpponent).length > 0 && (
+          <div className="mb-4">
+            <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>HENDELSER</div>
+            <div className="space-y-1">
+              {match.events.filter(e => !e.isOpponent).map(ev => {
+                const p = playerById(ev.playerId);
+                const icon = ev.type === "goal" ? "⚽" : ev.type === "yellow" ? "🟨" : "🟥";
+                return (
+                  <div key={ev.id} className="flex items-center gap-2 text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+                    <span className="text-slate-500 font-mono text-xs w-8">{ev.minute}&apos;</span>
+                    <span>{icon}</span>
+                    <span>{p?.name || "Ukjent"}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Post match ratings modal */}
+        {showPostMatch && (
+          <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "rgba(0,0,0,0.8)" }}>
+            <div className="min-h-screen flex items-end justify-center">
+              <div className="w-full rounded-t-2xl px-4 pt-4 pb-8"
+                style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}>
+                <div className="font-bold text-white mb-4">Kampvurdering</div>
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                  {Object.keys(match.playerMinutes || {}).map(pid => {
+                    const p = playerById(pid);
+                    if (!p) return null;
+                    const mins = match.playerMinutes[pid];
+                    const r = ratings[pid] || { rating: 0, comment: "" };
+                    return (
+                      <div key={pid} className="rounded-xl p-3 space-y-2" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-white text-sm font-semibold">{p.name}</div>
+                            <div className="text-xs text-slate-500">{mins} min</div>
+                          </div>
+                          <div className="flex gap-1">
+                            {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                              <button key={n} onClick={() => setRatings(prev => ({ ...prev, [pid]: { ...r, rating: n } }))}
+                                className="w-6 h-6 rounded text-xs font-bold"
+                                style={{
+                                  background: r.rating >= n ? "rgba(132,204,22,0.8)" : "rgba(255,255,255,0.07)",
+                                  color: r.rating >= n ? "#0f172a" : "rgba(255,255,255,0.4)",
+                                }}>
+                                {n}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <input value={r.comment || ""} onChange={e => setRatings(prev => ({ ...prev, [pid]: { ...r, comment: e.target.value } }))}
+                          placeholder="Kommentar (valgfritt)"
+                          className="w-full rounded-lg px-3 py-2 text-white text-sm outline-none"
+                          style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", fontSize: 16 }} />
+                      </div>
+                    );
+                  })}
+                </div>
+                <button onClick={saveRatings}
+                  className="w-full mt-4 py-3 rounded-xl bg-lime-400 text-slate-950 font-bold text-sm">
+                  Lagre og avslutt
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
