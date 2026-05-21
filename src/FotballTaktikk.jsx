@@ -1219,12 +1219,12 @@ function TeamPlayers({ team, user, db, setDB }) {
       )}
 
       {team.players.length === 0 ? (
-        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center">
-          <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="font-display text-2xl text-gray-500 mb-2">INGEN SPILLERE</h3>
+        <div className="border-2 border-dashed rounded-2xl p-16 text-center" style={{ borderColor: "rgba(255,255,255,0.1)" }}>
+          <Users className="w-12 h-12 mx-auto mb-4" style={{ color: "rgba(255,255,255,0.2)" }} />
+          <h3 className="font-display text-2xl mb-2" style={{ color: "rgba(255,255,255,0.4)" }}>INGEN SPILLERE</h3>
           {write && (
             <>
-              <p className="text-gray-400 text-sm mb-6">Legg til spillere for å bygge laget</p>
+              <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.4)" }}>Legg til spillere for å bygge laget</p>
               <button onClick={() => setShowAdd(true)} className="px-5 py-2.5 rounded-xl bg-lime-400 text-slate-950 font-semibold text-sm inline-flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Legg til spiller
               </button>
@@ -1232,8 +1232,8 @@ function TeamPlayers({ team, user, db, setDB }) {
           )}
         </div>
       ) : (
-        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
-          <div className="grid grid-cols-12 gap-3 px-5 py-3 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 tracking-wider">
+        <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
+          <div className="grid grid-cols-12 gap-3 px-5 py-3 text-xs font-semibold tracking-wider" style={{ background: "rgba(255,255,255,0.07)", borderBottom: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.5)" }}>
             <div className="col-span-1">NR</div>
             <div className="col-span-4">NAVN</div>
             <div className="col-span-6">POSISJONER</div>
@@ -1267,12 +1267,12 @@ function PlayerRow({ player, writable, onRemove, onEdit }) {
     );
   }
   return (
-    <div className="grid grid-cols-12 gap-3 px-5 py-3.5 border-b border-gray-100 last:border-0 hover:bg-gray-50 items-center">
+    <div className="grid grid-cols-12 gap-3 px-5 py-3.5 items-center" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
       <div className="col-span-1">
-        <span className="font-mono font-bold text-lime-600">{player.number || "—"}</span>
+        <span className="font-mono font-bold text-lime-400">{player.number || "—"}</span>
       </div>
       <div className="col-span-4">
-        <div className="text-gray-900 font-medium">{player.name}</div>
+        <div className="font-medium text-white">{player.name}</div>
       </div>
       <div className="col-span-6 flex flex-wrap gap-1.5">
         {player.positions.map(code => {
@@ -1289,10 +1289,10 @@ function PlayerRow({ player, writable, onRemove, onEdit }) {
       <div className="col-span-1 flex justify-end gap-1">
         {writable && (
           <>
-            <button onClick={() => setEditing(true)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-700">
+            <button onClick={() => setEditing(true)} className="p-2 rounded-lg" style={{ color: "rgba(255,255,255,0.4)" }}>
               <Edit3 className="w-4 h-4" />
             </button>
-            <button onClick={onRemove} className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500">
+            <button onClick={onRemove} className="p-2 rounded-lg hover:text-red-400" style={{ color: "rgba(255,255,255,0.4)" }}>
               <Trash2 className="w-4 h-4" />
             </button>
           </>
