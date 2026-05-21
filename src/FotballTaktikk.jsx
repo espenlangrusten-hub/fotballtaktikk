@@ -931,20 +931,66 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
             style={{ maxWidth: "360px", aspectRatio: "68/100", touchAction: "none" }}
           >
             <PitchMarkings />
-            {tactic.arrows?.length > 0 && (
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ zIndex: 5 }}>
+            {((tactic.arrows?.length > 0) || drawingArrow) && (
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ zIndex: 5, pointerEvents: "none" }}>
                 <defs>
                   <marker id="ov-ah" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
                     <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(132,204,22,0.9)" />
                   </marker>
+                  <marker id="ov-ah-drawing" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,0.6)" />
+                  </marker>
                 </defs>
-                {tactic.arrows.map(a => (
+                {tactic.arrows?.map(a => (
                   <line key={a.id} x1={a.fromX} y1={a.fromY} x2={a.toX} y2={a.toY}
-                    stroke="rgba(132,204,22,0.8)" strokeWidth="1.5"
+                    stroke={selectedArrowId === a.id ? "rgba(239,68,68,0.9)" : "rgba(132,204,22,0.8)"}
+                    strokeWidth="1.5"
                     markerEnd="url(#ov-ah)" vectorEffect="non-scaling-stroke" />
                 ))}
+                {drawingArrow && (
+                  <line x1={drawingArrow.fromX} y1={drawingArrow.fromY} x2={drawingArrow.toX} y2={drawingArrow.toY}
+                    stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeDasharray="3,2"
+                    markerEnd="url(#ov-ah-drawing)" vectorEffect="non-scaling-stroke" />
+                )}
               </svg>
             )}
+            {write && tactic.arrows?.map(a => {
+              const midX = (a.fromX + a.toX) / 2;
+              const midY = (a.fromY + a.toY) / 2;
+              return (
+                <div
+                  key={`del-${a.id}`}
+                  className="absolute"
+                  style={{ left: `${midX}%`, top: `${midY}%`, transform: "translate(-50%,-50%)", zIndex: 20 }}
+                >
+                  {selectedArrowId === a.id ? (
+                    <button
+                      onPointerDown={(e) => { e.stopPropagation(); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setTactic(t => {
+                          const updated = { ...t, arrows: t.arrows.filter(x => x.id !== a.id) };
+                          saveTacticToDb(updated);
+                          return updated;
+                        });
+                        setSelectedArrowId(null);
+                      }}
+                      className="w-5 h-5 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg"
+                      style={{ fontSize: 10 }}
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  ) : (
+                    <button
+                      onPointerDown={(e) => { e.stopPropagation(); }}
+                      onClick={(e) => { e.stopPropagation(); setSelectedArrowId(a.id); }}
+                      className="w-4 h-4 rounded-full"
+                      style={{ background: "transparent" }}
+                    />
+                  )}
+                </div>
+              );
+            })}
             {tactic.slots.map(slot => {
               const isDragging = draggingSlot === slot.id;
               const pos = isDragging && livePos ? livePos : { x: slot.x, y: slot.y };
