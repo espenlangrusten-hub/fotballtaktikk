@@ -230,9 +230,9 @@ const visibleTeams = (u, teams) => {
 function Field({ icon, label, children }) {
   return (
     <div>
-      {label && <label className="text-xs font-semibold text-slate-400 tracking-wider mb-1.5 block">{label.toUpperCase()}</label>}
+      {label && <label className="text-xs font-semibold tracking-wider mb-1.5 block" style={{ color: "rgba(255,255,255,0.85)" }}>{label.toUpperCase()}</label>}
       <div className="flex items-center gap-3 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-3 focus-within:border-lime-400/50 transition-colors">
-        {icon && <span className="text-slate-500">{icon}</span>}
+        {icon && <span style={{ color: "rgba(255,255,255,0.5)" }}>{icon}</span>}
         {children}
       </div>
     </div>
@@ -321,7 +321,7 @@ function AuthScreen({ onLogin, db }) {
           <h1 className="font-display text-5xl text-white tracking-wide">
             FOTBALL<span className="text-lime-400">.</span>TAKTIKK
           </h1>
-          <p className="text-white/70 text-sm mt-2 tracking-wide">
+          <p className="text-white text-sm mt-2 tracking-wide">
             PROFESJONELL KLUBBSTYRING FOR LAGLEDERE
           </p>
         </div>
@@ -338,7 +338,7 @@ function AuthScreen({ onLogin, db }) {
                 onKeyDown={e => e.key === "Enter" && submit()}
                 className="bg-transparent w-full outline-none text-white placeholder:text-slate-600"
                 placeholder="••••••••" autoComplete="current-password" />
-              <button onClick={() => setShowPass(s => !s)} className="text-slate-500 hover:text-lime-400">
+              <button onClick={() => setShowPass(s => !s)} className="hover:text-lime-400" style={{ color: "rgba(255,255,255,0.5)" }}>
                 {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </Field>
@@ -354,16 +354,16 @@ function AuthScreen({ onLogin, db }) {
               LOGG INN
             </button>
 
-            <p className="text-xs text-slate-500 text-center pt-2">
-              Demo-admin: <span className="font-mono text-lime-400/80">admin / admin</span>
+            <p className="text-xs text-white/60 text-center pt-2">
+              Demo-admin: <span className="font-mono text-lime-400">admin / admin</span>
             </p>
-            <p className="text-xs text-slate-600 text-center">
+            <p className="text-xs text-white/40 text-center">
               Brukerkontoer opprettes og administreres av admin.
             </p>
           </div>
         </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6 tracking-wider">v2.0 · DATA LAGRES LOKALT</p>
+        <p className="text-center text-white/30 text-xs mt-6 tracking-wider">v2.0 · DATA LAGRES LOKALT</p>
       </div>
     </div>
   );
@@ -528,21 +528,21 @@ function TeamCard({ team, user, onClick }) {
   return (
     <button onClick={onClick}
       className="group text-left rounded-2xl p-5 transition-all"
-      style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}
-      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.09)"; e.currentTarget.style.borderColor = "rgba(132,204,22,0.4)"; }}
-      onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; }}
+      style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)" }}
+      onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; e.currentTarget.style.borderColor = "rgba(132,204,22,0.5)"; }}
+      onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"; }}
     >
       <div className="flex items-start justify-between mb-3">
         <PermBadge permission={write ? "write" : "read"} />
       </div>
-      <h3 className="font-display text-xl text-white">
+      <h3 className="font-display text-xl" style={{ color: "#fff" }}>
         {team.name}{team.variant ? ` ${team.variant}` : ""}
       </h3>
-      <div className="text-xs text-slate-400 mt-1">Årskull {team.ageYear} · {team.format}</div>
-      <div className="flex gap-4 mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+      <div className="text-xs mt-1" style={{ color: "rgba(255,255,255,0.65)" }}>Årskull {team.ageYear} · {team.format}</div>
+      <div className="flex gap-4 mt-4 pt-4" style={{ borderTop: "1px solid rgba(255,255,255,0.15)" }}>
         <div>
-          <div className="text-xs text-slate-500">Spillere</div>
-          <div className="font-display text-lg text-white">{team.players.length}</div>
+          <div className="text-xs" style={{ color: "rgba(255,255,255,0.5)" }}>Spillere</div>
+          <div className="font-display text-lg" style={{ color: "#fff" }}>{team.players.length}</div>
         </div>
       </div>
     </button>
@@ -958,37 +958,30 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
               const midX = (a.fromX + a.toX) / 2;
               const midY = (a.fromY + a.toY) / 2;
               return (
-                <div
+                <button
                   key={`del-${a.id}`}
-                  className="absolute"
-                  style={{ left: `${midX}%`, top: `${midY}%`, transform: "translate(-50%,-50%)", zIndex: 20 }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTactic(t => {
+                      const updated = { ...t, arrows: t.arrows.filter(x => x.id !== a.id) };
+                      saveTacticToDb(updated);
+                      return updated;
+                    });
+                  }}
+                  className="absolute flex items-center justify-center rounded-full"
+                  style={{
+                    left: `${midX}%`, top: `${midY}%`,
+                    transform: "translate(-50%,-50%)",
+                    width: 22, height: 22,
+                    background: "rgba(239,68,68,0.85)",
+                    border: "2px solid rgba(255,255,255,0.7)",
+                    zIndex: 25,
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
+                  }}
                 >
-                  {selectedArrowId === a.id ? (
-                    <button
-                      onPointerDown={(e) => { e.stopPropagation(); }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setTactic(t => {
-                          const updated = { ...t, arrows: t.arrows.filter(x => x.id !== a.id) };
-                          saveTacticToDb(updated);
-                          return updated;
-                        });
-                        setSelectedArrowId(null);
-                      }}
-                      className="w-5 h-5 rounded-full flex items-center justify-center bg-red-500 text-white shadow-lg"
-                      style={{ fontSize: 10 }}
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  ) : (
-                    <button
-                      onPointerDown={(e) => { e.stopPropagation(); }}
-                      onClick={(e) => { e.stopPropagation(); setSelectedArrowId(a.id); }}
-                      className="w-4 h-4 rounded-full"
-                      style={{ background: "transparent" }}
-                    />
-                  )}
-                </div>
+                  <X className="w-3 h-3 text-white" />
+                </button>
               );
             })}
             {tactic.slots.map(slot => {
