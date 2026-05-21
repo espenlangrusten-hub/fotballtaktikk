@@ -497,7 +497,7 @@ function AuthScreen({ onLogin, db }) {
 
       <div className="relative w-full max-w-md anim-in">
         <div className="text-center mb-8">
-          <img src="/logo.svg" alt="Fotball Taktikk" className="mx-auto mb-5" style={{ width: 100, height: 112 }} />
+          <img src="logo.svg" alt="Fotball Taktikk" className="mx-auto mb-5" style={{ width: 100, height: 112 }} />
           <h1 className="font-display text-5xl font-bold" style={{ color: "#ffffff" }}>
             Fotball Taktikk
           </h1>
