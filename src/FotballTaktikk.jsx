@@ -370,10 +370,10 @@ function AuthScreen({ onLogin, db }) {
 }
 
 // ---------- HEADER ----------
-function Header({ user, club, onLogout, breadcrumbs, onBack, onAdmin, currentView }) {
+function Header({ user, club, onLogout, breadcrumbs, onBack, onAdmin, currentView, teamName }) {
   return (
-    <header className="sticky top-0 z-30 bg-slate-950/85 backdrop-blur-xl border-b border-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
+    <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-xl border-b border-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {onBack && (
             <button onClick={onBack} className="p-2 rounded-lg hover:bg-slate-800 text-slate-300 flex-shrink-0">
@@ -384,10 +384,19 @@ function Header({ user, club, onLogout, breadcrumbs, onBack, onAdmin, currentVie
             <Trophy className="w-5 h-5 text-slate-950" strokeWidth={2.5} />
           </div>
           <div className="min-w-0">
-            <div className="font-display text-lg text-white leading-none truncate">
-              {club?.name || "FOTBALL.TAKTIKK"}
-            </div>
-            {breadcrumbs && <div className="text-xs text-slate-500 mt-0.5 truncate">{breadcrumbs}</div>}
+            {teamName ? (
+              <>
+                <div className="font-display text-xl sm:text-2xl text-white leading-tight truncate">{teamName}</div>
+                <div className="text-[10px] text-slate-500 leading-none truncate">{club?.name || ""}</div>
+              </>
+            ) : (
+              <>
+                <div className="font-display text-lg text-white leading-none truncate">
+                  {club?.name || "FOTBALL.TAKTIKK"}
+                </div>
+                {breadcrumbs && <div className="text-xs text-slate-500 mt-0.5 truncate">{breadcrumbs}</div>}
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -567,61 +576,67 @@ function TeamView({ team, user, db, setDB, onBack }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* White header section with team name + tab bar */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 pb-0">
-          {!write && <ReadOnlyBanner />}
-          <div className="mb-4">
-            <div className="text-xs font-bold text-lime-600 tracking-widest mb-1 uppercase">{liveTeam.format} · Årskull {liveTeam.ageYear}</div>
-            {editingName ? (
-              <div className="flex items-center gap-2 flex-wrap">
-                <input value={newName} onChange={e => setNewName(e.target.value)}
-                  className="font-display text-3xl text-gray-900 bg-transparent border-b-2 border-lime-400 outline-none w-48 sm:w-64"
-                  autoFocus onKeyDown={e => e.key === "Enter" && saveTeamName()} />
-                <input value={newVariant} onChange={e => setNewVariant(e.target.value)}
-                  placeholder="variant (1, A…)"
-                  className="font-display text-xl text-gray-500 bg-transparent border-b-2 border-gray-200 outline-none w-24"
-                  onKeyDown={e => e.key === "Enter" && saveTeamName()} />
-                <button onClick={saveTeamName} className="p-2 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950">
-                  <Check className="w-4 h-4" />
-                </button>
-                <button onClick={() => { setEditingName(false); setNewName(liveTeam.name); setNewVariant(liveTeam.variant || ""); }}
-                  className="p-2 rounded-lg hover:bg-gray-100 text-gray-400">
-                  <X className="w-4 h-4" />
-                </button>
+      {/* Sticky tab bar — sits right below the sticky global header */}
+      <div className="sticky top-[60px] z-20 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          {/* Team edit row (only shown when editing) */}
+          {editingName ? (
+            <div className="flex items-center gap-2 py-2 flex-wrap">
+              <div className="text-xs font-bold text-lime-600 tracking-widest mr-1 uppercase hidden sm:block">
+                {liveTeam.format} · {liveTeam.ageYear}
               </div>
-            ) : (
-              <div className="flex items-center gap-3 group">
-                <h1 className="font-display text-4xl sm:text-5xl text-gray-900">
-                  {liveTeam.name}{liveTeam.variant ? ` ${liveTeam.variant}` : ""}
-                </h1>
+              <input value={newName} onChange={e => setNewName(e.target.value)}
+                className="font-display text-lg text-white bg-transparent border-b border-lime-400 outline-none w-36 sm:w-48"
+                autoFocus onKeyDown={e => e.key === "Enter" && saveTeamName()} />
+              <input value={newVariant} onChange={e => setNewVariant(e.target.value)}
+                placeholder="variant"
+                className="font-display text-base text-slate-400 bg-transparent border-b border-slate-600 outline-none w-16"
+                onKeyDown={e => e.key === "Enter" && saveTeamName()} />
+              <button onClick={saveTeamName} className="p-1.5 rounded-lg bg-lime-400 hover:bg-lime-300 text-slate-950">
+                <Check className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => { setEditingName(false); setNewName(liveTeam.name); setNewVariant(liveTeam.variant || ""); }}
+                className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : null}
+
+          {/* Tab bar + edit/delete actions */}
+          <div className="flex items-center justify-between">
+            <div className="flex">
+              {[["oversikt","Oversikt"],["spillere","Spillere"],["taktikk","Taktikk"]].map(([key,label]) => (
+                <button key={key} onClick={() => setTab(key)}
+                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                    tab === key
+                      ? "border-lime-400 text-lime-400"
+                      : "border-transparent text-slate-400 hover:text-slate-200"
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {!editingName && (write || adminUser) && (
+              <div className="flex items-center gap-1 pr-1">
                 {write && (
                   <button onClick={() => setEditingName(true)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-                    <Edit3 className="w-4 h-4" />
+                    className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-slate-300"
+                    title="Endre lagnavn">
+                    <Edit3 className="w-3.5 h-3.5" />
                   </button>
                 )}
                 {adminUser && (
                   <button onClick={deleteTeam}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500">
-                    <Trash2 className="w-4 h-4" />
+                    className="p-2 rounded-lg hover:bg-red-900/40 text-slate-600 hover:text-red-400"
+                    title="Slett lag">
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
             )}
           </div>
-          {/* Tab bar */}
-          <div className="flex -mb-px">
-            {[["oversikt","Oversikt"],["spillere","Spillere"],["taktikk","Taktikk"]].map(([key,label]) => (
-              <button key={key} onClick={() => setTab(key)}
-                className={`px-5 py-3 text-sm font-semibold border-b-2 transition-colors ${
-                  tab === key ? "border-lime-500 text-lime-600" : "border-transparent text-gray-500 hover:text-gray-800"
-                }`}>
-                {label}
-              </button>
-            ))}
-          </div>
         </div>
+        {!write && <div className="px-4"><ReadOnlyBanner /></div>}
       </div>
 
       {/* Tab content */}
@@ -2213,6 +2228,7 @@ export default function App() {
         breadcrumbs={breadcrumbs}
         onBack={onBack}
         currentView={view.name}
+        teamName={view.name === "team" ? (currentTeam ? `${currentTeam.name}${currentTeam.variant ? ` ${currentTeam.variant}` : ""}` : "") : undefined}
         onAdmin={() => setView(v => v.name === "admin" ? { name: "club" } : { name: "admin" })}
         onLogout={() => { setCurrentUserId(null); setView({ name: "club" }); }}
       />
