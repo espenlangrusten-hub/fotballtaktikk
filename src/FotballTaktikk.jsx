@@ -1067,7 +1067,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
                         fontSize: 12,
                       }}
                     >
-                      {player ? (player.number ?? "?") : slot.role}
+                      {player ? (player.number || "") : slot.role}
                     </div>
                     <div className="text-center" style={{ minWidth: 42 }}>
                       <div className="font-semibold text-white truncate" style={{ fontSize: 10, maxWidth: 58, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
@@ -1146,56 +1146,53 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     {/* ── SAVE DIALOG ── */}
 
     {showSaveDialog && (
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-        style={{ background: "rgba(0,0,0,0.6)" }}
+      <div className="fixed inset-0 z-50 flex items-end justify-center"
+        style={{ background: "rgba(0,0,0,0.55)" }}
         onClick={() => setShowSaveDialog(false)}>
-        <div className="w-full max-w-sm rounded-2xl p-5 space-y-4"
-          style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.15)" }}
+        <div className="w-full rounded-t-2xl px-4 pt-4 pb-6 space-y-3"
+          style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
           onClick={e => e.stopPropagation()}>
-          <div className="font-bold text-white text-base">Lagre taktikk</div>
+          <div className="font-bold text-white text-sm">Lagre taktikk</div>
 
           <div>
-            <label className="text-xs font-semibold block mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>NAVN</label>
+            <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>NAVN</label>
             <input
               value={saveName}
               onChange={e => setSaveName(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleConfirmSave()}
               placeholder="f.eks. Presstrykk 4-3-3"
               autoFocus
-              className="w-full rounded-xl px-3 py-2.5 text-white text-sm outline-none"
-              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)" }}
+              className="w-full rounded-lg px-3 py-2 text-white outline-none"
+              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16 }}
             />
           </div>
 
           {savedTactics.length > 0 && (
             <div>
-              <label className="text-xs font-semibold block mb-1.5" style={{ color: "rgba(255,255,255,0.7)" }}>OVERSKRIV EKSISTERENDE (valgfritt)</label>
+              <label className="text-[10px] font-semibold block mb-1" style={{ color: "rgba(255,255,255,0.6)" }}>OVERSKRIV EKSISTERENDE (valgfritt)</label>
               <select
                 value={overwriteId}
                 onChange={e => setOverwriteId(e.target.value)}
-                className="w-full rounded-xl px-3 py-2.5 text-sm outline-none"
-                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#e2e8f0" }}
+                className="w-full rounded-lg px-3 py-2 text-sm outline-none"
+                style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "#e2e8f0", fontSize: 16 }}
               >
                 <option value="" style={{ background: "#0d2340" }}>— Lagre som ny —</option>
                 {savedTactics.map(t => (
                   <option key={t.id} value={t.id} style={{ background: "#0d2340" }}>{t.name} — {t.formation}</option>
                 ))}
               </select>
-              <p className="text-[10px] mt-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
-                Predefinerte formasjoner kan ikke overskrives
-              </p>
             </div>
           )}
 
-          <div className="flex gap-2 pt-1">
+          <div className="flex gap-2">
             <button onClick={() => setShowSaveDialog(false)}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold"
+              className="flex-1 py-2 rounded-lg text-sm font-semibold"
               style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
               Avbryt
             </button>
             <button onClick={handleConfirmSave}
               disabled={!saveName.trim()}
-              className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
+              className="flex-1 py-2 rounded-lg text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
               Lagre
             </button>
           </div>
@@ -1726,7 +1723,7 @@ function TacticsView({ team, user, db, setDB }) {
               >
                 <div className="w-8 h-8 rounded-full flex items-center justify-center font-mono text-xs font-bold"
                   style={{ borderColor: onPitch ? "#84cc16" : "#475569", color: onPitch ? "#84cc16" : "#94a3b8" }}>
-                  {p.number ?? "?"}
+                  {p.number || ""}
                 </div>
                 <div className="text-[10px] text-white font-semibold max-w-[52px] truncate text-center leading-tight">
                   {p.name.split(" ")[0]}
@@ -1843,7 +1840,7 @@ function TacticsView({ team, user, db, setDB }) {
                       }}
                     >
                       <span className="font-mono text-sm leading-none">
-                        {player ? (player.number ?? "?") : slot.role}
+                        {player ? (player.number || "") : slot.role}
                       </span>
                     </div>
                     <div className="text-center" style={{ minWidth: 42 }}>
@@ -1900,7 +1897,7 @@ function TacticsView({ team, user, db, setDB }) {
                         color: onPitch ? "#84cc16" : (posMeta?.color || "#94a3b8"),
                         backgroundColor: "#0f172a",
                       }}>
-                      {p.number ?? "?"}
+                      {p.number || ""}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-white text-sm truncate leading-tight">{p.name}</div>
@@ -1942,7 +1939,7 @@ function TacticsView({ team, user, db, setDB }) {
                   color: posMeta?.color || "#84cc16",
                   boxShadow: "0 8px 24px rgba(0,0,0,0.7)",
                 }}>
-                {p.number ?? "?"}
+                {p.number || ""}
               </div>
               <div className="text-xs font-semibold text-white bg-slate-950/90 px-2 py-0.5 rounded whitespace-nowrap">
                 {p.name.split(" ")[0]}
@@ -2185,7 +2182,7 @@ function AssignPlayerModal({ slot, players, currentPlayerId, usedPlayerIds, onAs
                 "bg-slate-950/50 border-slate-800 hover:border-lime-400/40"
               }`}>
               <div className="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center font-mono text-xs text-lime-400">
-                {p.number ?? "?"}
+                {p.number || ""}
               </div>
               <div className="flex-1 text-left">
                 <div className="text-white">{p.name}</div>
