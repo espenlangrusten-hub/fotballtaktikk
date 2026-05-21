@@ -21,7 +21,7 @@ const GlobalStyles = () => (
     .font-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
     .font-body { font-family: 'Manrope', sans-serif; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
-    body { font-family: 'Manrope', sans-serif; background: #f1f5f9; }
+    body { font-family: 'Manrope', sans-serif; background: #020617; }
     .pitch-grad {
       background:
         repeating-linear-gradient(180deg,
@@ -1644,8 +1644,8 @@ function TacticsView({ team, user, db, setDB }) {
   , [team.players]);
 
   return (
-    <div className="min-h-screen" style={{ background: "linear-gradient(155deg, #08111e 0%, #0d2340 45%, #08111e 100%)" }}>
-    <div className="max-w-7xl mx-auto px-3 py-4">
+    <div className="min-h-screen" style={{ background: "#020617" }}>
+    <div className="px-2 pt-3 pb-6">
       {!write && <ReadOnlyBanner />}
 
       {/* ===== TOP BAR ===== */}
@@ -2628,7 +2628,7 @@ export default function App() {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-body">
+    <div className="min-h-screen font-body" style={{ background: "#020617" }}>
       <GlobalStyles />
       <Header
         user={user}
