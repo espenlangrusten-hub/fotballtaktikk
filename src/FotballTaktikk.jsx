@@ -1094,8 +1094,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
             </div>
           )}
           <div className="flex flex-wrap gap-2">
-            {sortedPlayers.map(p => {
-              const assignedSlot = tactic.slots.find(s => s.playerId === p.id);
+            {sortedPlayers.filter(p => !tactic.slots.some(s => s.playerId === p.id)).map(p => {
               const isSelected = selectedPlayerId === p.id;
               const posMeta = POSITION_BY_CODE[p.positions[0]];
               return (
@@ -1103,38 +1102,22 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
                   key={p.id}
                   onClick={() => {
                     if (!write) return;
-                    if (assignedSlot) {
-                      assignPlayer(assignedSlot.id, null);
-                    } else {
-                      setSelectedPlayerId(prev => prev === p.id ? null : p.id);
-                    }
+                    setSelectedPlayerId(prev => prev === p.id ? null : p.id);
                   }}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
                   style={{
-                    background: isSelected
-                      ? "#84cc16"
-                      : assignedSlot
-                        ? "rgba(255,255,255,0.04)"
-                        : "rgba(255,255,255,0.09)",
-                    border: `1px solid ${isSelected ? "#84cc16" : assignedSlot ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.14)"}`,
-                    color: isSelected ? "#0f172a" : assignedSlot ? "rgba(255,255,255,0.4)" : "rgba(255,255,255,0.85)",
+                    background: isSelected ? "#84cc16" : "rgba(255,255,255,0.09)",
+                    border: `1px solid ${isSelected ? "#84cc16" : "rgba(255,255,255,0.14)"}`,
+                    color: isSelected ? "#0f172a" : "rgba(255,255,255,0.85)",
                     boxShadow: isSelected ? "0 0 16px rgba(132,204,22,0.5)" : "none",
                     cursor: write ? "pointer" : "default",
                   }}
                 >
                   <span className="font-mono text-xs opacity-70">{p.number || "—"}</span>
                   {p.name}
-                  {assignedSlot && (
-                    <span className="text-[9px] font-bold px-1 py-0.5 rounded"
-                      style={{ background: "rgba(132,204,22,0.15)", color: "#84cc16" }}>
-                      {assignedSlot.role}
-                    </span>
-                  )}
-                  {!assignedSlot && (
-                    <span className="text-[9px] font-bold opacity-50" style={{ color: isSelected ? "#0f172a" : posMeta?.color }}>
-                      {p.positions[0] || ""}
-                    </span>
-                  )}
+                  <span className="text-[9px] font-bold opacity-50" style={{ color: isSelected ? "#0f172a" : posMeta?.color }}>
+                    {p.positions[0] || ""}
+                  </span>
                 </button>
               );
             })}
