@@ -220,6 +220,113 @@ const FORMATION_NOTES = {
   },
 };
 
+const ROLE_NOTES = {
+  "4-4-2": {
+    K:  "Kommander boksen og distribuér raskt til backene eller midtbanen. Organiser backlinjen høyt.",
+    LB: "Hold deg bred og overlapp LM ved mulighet. Trekk raskt tilbake ved ballap.",
+    CB: "Hold linjen stramt og vinn luftdueller. Spill enkelt og rolig ut under press.",
+    RB: "Hold deg bred og overlapp RM ved mulighet. Trekk raskt tilbake ved ballap.",
+    LM: "Lever innlegg fra venstre og dekk LB-en defensivt ved ballap.",
+    CM: "Sirkuler ballen og dekk sentralt rom. Timing-løp inn i boksen ved innlegg.",
+    RM: "Lever innlegg fra høyre og dekk RB-en defensivt ved ballap.",
+    ST: "Press bakover fra front, kombiner med medspiss og søk hull bak backlinjen.",
+  },
+  "4-3-3": {
+    K:  "Kommander boksen. Distribuér til backene for oppbygging bakfra.",
+    LB: "Overlapp LW og gi bredde. Trekk raskt tilbake ved ballap.",
+    CB: "Hold linjen. Støtt oppbygging bakfra med korte pasninger til midtbanen.",
+    RB: "Overlapp RW og gi bredde. Trekk raskt tilbake ved ballap.",
+    CM: "Press høyt, dekk rom og støtt vingene med timing-løp inn i boksen.",
+    LW: "Søk 1v1 mot RB, skjær inn i boksen og bidra til pressing høyt oppe.",
+    ST: "Dra CB-er ut av posisjon og skap rom for indreløpere. Press keeper og CB-ene.",
+    RW: "Søk 1v1 mot LB, skjær inn i boksen og bidra til pressing høyt oppe.",
+  },
+  "4-2-3-1": {
+    K:  "Distribuér til pivoter eller backene. Hold deg klar for lange baller ved press.",
+    LB: "Overlapp AML og gi bredde. DM-en dekker ryggen når du går fremover.",
+    CB: "Hold linjen. Spill enkelt til pivoter. Vær klar for lange baller.",
+    RB: "Overlapp AMR og gi bredde. DM-en dekker ryggen når du går fremover.",
+    DM: "Dekk rom foran backlinjen. Spill enkelt og støtt oppbygging. Sitt aldri for høyt.",
+    AM: "Finn rom mellom linjene og trigger gjennomspillinger til spissen. Press ned ved ballap.",
+    ST: "Vinn luftdueller eller hold ballen som ankerpunkt. Søk hull bak linjen ved gjennomspilling.",
+  },
+  "4-1-2-1-2": {
+    K:  "Distribuér raskt. Backene må strekke seg bredt for å gi bredde til den smale diamanten.",
+    LB: "Legg deg veldig høyt og bredt — du er lagets eneste bredde på venstre side.",
+    CB: "Hold linjen og støtt DM-en ved gjennombrudd. Spill enkelt og rolig.",
+    RB: "Legg deg veldig høyt og bredt — du er lagets eneste bredde på høyre side.",
+    DM: "Ankre defensiven. Dekk rom og støtt backlinjen. Spill aldri for offensivt.",
+    CM: "Løp inn i boksen fra midtre posisjon. Støtt spissene og backene med timing.",
+    AM: "Operér mellom linjene og trigger spissene. Kom deg raskt tilbake ved ballap.",
+    ST: "Press bakover og kombiner med medspiss. Utnytt rom som backene og AM skaper.",
+  },
+  "3-4-3": {
+    K:  "Kommander boksen og organiser de tre CB-ene. Distribuér til wingbacks.",
+    CB: "De tre CB-ene deler bredden. Ytterste CB støtter sin wingback og dekker sin side.",
+    LM: "Wingback — legg deg høyt, lever innlegg og trekk tilbake i 5-linja ved ballap.",
+    CM: "Dekk sentralt rom og støtt pivotet. Løp inn i boksen ved innlegg fra wingbacks.",
+    RM: "Wingback — legg deg høyt, lever innlegg og trekk tilbake i 5-linja ved ballap.",
+    LW: "Søk 1v1-situasjoner, skjær inn i boksen og rotér med ST og RW.",
+    ST: "Roter med LW og RW. Søk dybderom og trekk på deg CB-ene.",
+    RW: "Søk 1v1-situasjoner, skjær inn i boksen og rotér med ST og LW.",
+  },
+  "3-4-2-1": {
+    K:  "Distribuér til wingbacks eller CB-ene. Hold deg klar for lange baller.",
+    CB: "Tre CB-er dekker bredden. Midterste organiserer linja. Ytterste støtter wingback.",
+    LM: "Wingback — lever bredde og innlegg. Trekk tilbake i 5-linja ved ballap.",
+    CM: "Dekk sentralt rom og støtt wingbacks. Spill enkelt og effektivt.",
+    RM: "Wingback — lever bredde og innlegg. Trekk tilbake i 5-linja ved ballap.",
+    AM: "Trequartista — operér mellom linjene og kombiner med spissen og den andre AM-en.",
+    ST: "Jobbe hardt for å skape rom. Utnytt hull bak backlinjen og kombiner med AM-ene.",
+  },
+  "3-5-2": {
+    K:  "Kommander boksen og støtt de tre CB-ene. Distribuér til wingbacks for bredde.",
+    CB: "Tre CB-er deler bredden. Hold linjen og støtt midtbanen med enkle pasninger.",
+    LM: "Wingback — fungér som midtbanespiller offensivt. Lever innlegg og trekk inn i 5-linja.",
+    CM: "Sirkuler ballen effektivt. Dekk rom og støtt de to spissene.",
+    RM: "Wingback — fungér som midtbanespiller offensivt. Lever innlegg og trekk inn i 5-linja.",
+    ST: "Kombiner med medspiss. Press bakover fra front og søk hull bak linjen.",
+  },
+  "4-3-2-1": {
+    K:  "Distribuér til backene for oppbygging. Organiser den kompakte midtblokken.",
+    LB: "Hold posisjonen og gi enkle pasninger til CM. Unngå å bli isolert på kanten.",
+    CB: "Hold linjen. Spill enkelt til de tre CM-ene. Vinn luftdueller.",
+    RB: "Hold posisjonen og gi enkle pasninger til CM. Unngå å bli isolert på kanten.",
+    CM: "Tre CM-er dekker sentralt rom. Sirkuler ballen og bytt spill raskt.",
+    AM: "Skjær inn fra din side og kombiner med medspiss. Bytt posisjoner for å forvirre.",
+    ST: "Utnytt dybderom. Jobbe tett med de to AM-ene. Press bakover fra front.",
+  },
+  "5-3-2": {
+    K:  "Distribuér raskt til de fem bakspillerne eller midtbanen. Klar for kontringssituasjoner.",
+    LB: "Wingback — hold deg lavt defensivt. Gjør offensive løp kun ved stabile faser.",
+    CB: "Hold den kompakte 5-linja. Vinn luftdueller og spill enkelt fremover.",
+    RB: "Wingback — hold deg lavt defensivt. Gjør offensive løp kun ved stabile faser.",
+    CM: "Støtt forsvaret og dekk rom. Distribuér raskt til spissene ved ballinnvining.",
+    ST: "Hold ballen som ankerpunkt. Press bakover ved ballap og forbered kontring.",
+  },
+  "4-5-1": {
+    K:  "Distribuér til backene. Hold deg klar for lange baller ved høypress fra motstanderen.",
+    LB: "Hold posisjonen bak LM. Overlapp kun ved trygg situasjon.",
+    CB: "Hold linjen. Spill enkelt til CM-ene. Vær kompakt med de fire backene.",
+    RB: "Hold posisjonen bak RM. Overlapp kun ved trygg situasjon.",
+    LM: "Fungér som vingstopper. Lever innlegg ved mulighet og dekk LB-en defensivt.",
+    CM: "Tre CM-er sitter kompakt og dekker sentralt. Distribuér effektivt.",
+    RM: "Fungér som vingstopper. Lever innlegg ved mulighet og dekk RB-en defensivt.",
+    ST: "Hold ballen alene og vent på støtte fra midtbanen. Press bakover fra front.",
+  },
+  "4-1-4-1": {
+    K:  "Kommander boksen. Distribuér til DM eller backene for oppbygging.",
+    LB: "Overlapp LM og gi bredde. DM-en dekker sentralt mens du er fremme.",
+    CB: "Hold linjen. Spill enkelt til DM-en. Vinn luftdueller.",
+    RB: "Overlapp RM og gi bredde. DM-en dekker sentralt mens du er fremme.",
+    DM: "Ankre defensiven. Aldri for langt fremover. Dekk rom foran backlinjen.",
+    LM: "Kombiner med LB-en. Lever innlegg og trekk tilbake defensivt.",
+    CM: "Løp inn i boksen fra indre bane. Støtt spissen og bidra med mål.",
+    RM: "Kombiner med RB-en. Lever innlegg og trekk tilbake defensivt.",
+    ST: "Hold ballen og vent på indreløpere. Press bakover fra front.",
+  },
+};
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 const roleGroup = (code) => POSITION_BY_CODE[code]?.group || "ATT";
 
@@ -1973,7 +2080,7 @@ function TacticsView({ team, user, db, setDB }) {
               />
             ) : (
               <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3 min-h-[80px]">
-                {tactic.notes?.defense || <span className="italic text-slate-500">{FORMATION_NOTES[tactic.formation]?.defense}</span>}
+                {tactic.notes?.defense || <span className="text-slate-300">{FORMATION_NOTES[tactic.formation]?.defense}</span>}
               </div>
             )}
           </div>
@@ -1992,7 +2099,7 @@ function TacticsView({ team, user, db, setDB }) {
               />
             ) : (
               <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3 min-h-[80px]">
-                {tactic.notes?.attack || <span className="italic text-slate-500">{FORMATION_NOTES[tactic.formation]?.attack}</span>}
+                {tactic.notes?.attack || <span className="text-slate-300">{FORMATION_NOTES[tactic.formation]?.attack}</span>}
               </div>
             )}
           </div>
@@ -2023,12 +2130,13 @@ function TacticsView({ team, user, db, setDB }) {
                         notes: { ...t.notes, positions: { ...(t.notes?.positions || {}), [noteKey]: e.target.value } }
                       }))}
                       onBlur={() => saveTacticNotes()}
-                      placeholder={`Instruksjon for ${slot.role}...`}
-                      className="flex-1 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-1.5 text-white text-xs outline-none focus:border-lime-400/50 placeholder:text-slate-700"
+                      placeholder={ROLE_NOTES[tactic.formation]?.[slot.role] || `Instruksjon for ${slot.role}...`}
+                      className="flex-1 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-1.5 text-white text-xs outline-none focus:border-lime-400/50 placeholder:text-slate-500"
+                      style={{ fontSize: 16 }}
                     />
                   ) : (
-                    <div className="flex-1 text-xs text-slate-400 py-1.5">
-                      {tactic.notes?.positions?.[noteKey] || <span className="italic text-slate-700">—</span>}
+                    <div className="flex-1 text-xs py-1.5" style={{ color: "#cbd5e1" }}>
+                      {tactic.notes?.positions?.[noteKey] || ROLE_NOTES[tactic.formation]?.[slot.role] || "—"}
                     </div>
                   )}
                 </div>
