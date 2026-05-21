@@ -2056,11 +2056,11 @@ function TacticsView({ team, user, db, setDB }) {
       </div>
 
       {/* ===== TACTICAL NOTES ===== */}
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 space-y-5">
         {/* Description — predefined based on formation */}
         <div>
           <div className="text-xs font-bold tracking-widest mb-2 text-slate-400">TAKTIKKBESKRIVELSE</div>
-          <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3">
+          <div className="text-sm bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-4 leading-relaxed" style={{ color: "#fff" }}>
             {FORMATION_NOTES[tactic.formation]?.description || <span className="italic text-slate-600">Ingen beskrivelse tilgjengelig</span>}
           </div>
         </div>
@@ -2069,18 +2069,19 @@ function TacticsView({ team, user, db, setDB }) {
           {/* Defensive */}
           <div>
             <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#60a5fa" }}>DEFENSIVPRINSIPPER</div>
-            {write ? (
+            {write && !tactic.isNew ? (
               <textarea
                 value={tactic.notes?.defense || ""}
                 onChange={e => setTactic(t => ({ ...t, notes: { ...t.notes, defense: e.target.value } }))}
                 onBlur={() => saveTacticNotes()}
                 placeholder={FORMATION_NOTES[tactic.formation]?.defense || "Legg inn defensive prinsipper..."}
-                rows={4}
-                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-blue-400/50 resize-none placeholder:text-slate-500"
+                rows={6}
+                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-4 text-white text-sm outline-none focus:border-blue-400/50 resize-none placeholder:text-slate-500 leading-relaxed"
+                style={{ fontSize: 16 }}
               />
             ) : (
-              <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3 min-h-[80px]">
-                {tactic.notes?.defense || <span className="text-slate-300">{FORMATION_NOTES[tactic.formation]?.defense}</span>}
+              <div className="text-sm bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-4 leading-relaxed" style={{ color: "#fff" }}>
+                {tactic.notes?.defense || FORMATION_NOTES[tactic.formation]?.defense || <span className="italic text-slate-600">Ingen notater</span>}
               </div>
             )}
           </div>
@@ -2088,18 +2089,19 @@ function TacticsView({ team, user, db, setDB }) {
           {/* Attacking */}
           <div>
             <div className="text-xs font-bold tracking-widest mb-2" style={{ color: "#84cc16" }}>ANGREPSPRINSIPPER</div>
-            {write ? (
+            {write && !tactic.isNew ? (
               <textarea
                 value={tactic.notes?.attack || ""}
                 onChange={e => setTactic(t => ({ ...t, notes: { ...t.notes, attack: e.target.value } }))}
                 onBlur={() => saveTacticNotes()}
                 placeholder={FORMATION_NOTES[tactic.formation]?.attack || "Legg inn angrepsprinsipper..."}
-                rows={4}
-                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3 text-white text-sm outline-none focus:border-lime-400/50 resize-none placeholder:text-slate-500"
+                rows={6}
+                className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-4 text-white text-sm outline-none focus:border-lime-400/50 resize-none placeholder:text-slate-500 leading-relaxed"
+                style={{ fontSize: 16 }}
               />
             ) : (
-              <div className="text-sm text-slate-300 bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-3 min-h-[80px]">
-                {tactic.notes?.attack || <span className="text-slate-300">{FORMATION_NOTES[tactic.formation]?.attack}</span>}
+              <div className="text-sm bg-slate-950/30 border border-slate-800 rounded-xl px-4 py-4 leading-relaxed" style={{ color: "#fff" }}>
+                {tactic.notes?.attack || FORMATION_NOTES[tactic.formation]?.attack || <span className="italic text-slate-600">Ingen notater</span>}
               </div>
             )}
           </div>
@@ -2108,35 +2110,37 @@ function TacticsView({ team, user, db, setDB }) {
         {/* Position instructions */}
         <div>
           <div className="text-xs font-bold tracking-widest mb-3 text-slate-400">INSTRUKSJONER PER POSISJON</div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             {tactic.slots.map(slot => {
               const player = team.players.find(p => p.id === slot.playerId);
               const posMeta = POSITION_BY_CODE[slot.role];
               const label = player ? player.name : slot.role;
               const noteKey = slot.id;
+              const predefined = ROLE_NOTES[tactic.formation]?.[slot.role] || "";
               return (
-                <div key={slot.id} className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-20 pt-2">
-                    <div className="text-xs font-bold truncate" style={{ color: player ? "#84cc16" : (posMeta?.color || "#94a3b8") }}>
+                <div key={slot.id} className="rounded-xl px-4 py-3 bg-slate-950/30 border border-slate-800">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-xs font-bold" style={{ color: player ? "#84cc16" : (posMeta?.color || "#94a3b8") }}>
                       {label}
-                    </div>
-                    {player && <div className="text-[9px] text-slate-600">{slot.role}</div>}
+                    </span>
+                    {player && <span className="text-[9px] text-slate-600">{slot.role}</span>}
                   </div>
-                  {write ? (
-                    <input
+                  {write && !tactic.isNew ? (
+                    <textarea
                       value={tactic.notes?.positions?.[noteKey] || ""}
                       onChange={e => setTactic(t => ({
                         ...t,
                         notes: { ...t.notes, positions: { ...(t.notes?.positions || {}), [noteKey]: e.target.value } }
                       }))}
                       onBlur={() => saveTacticNotes()}
-                      placeholder={ROLE_NOTES[tactic.formation]?.[slot.role] || `Instruksjon for ${slot.role}...`}
-                      className="flex-1 bg-slate-950/50 border border-slate-800 rounded-lg px-3 py-1.5 text-white text-xs outline-none focus:border-lime-400/50 placeholder:text-slate-500"
+                      placeholder={predefined || `Instruksjon for ${slot.role}...`}
+                      rows={2}
+                      className="w-full bg-transparent outline-none text-white text-sm resize-none placeholder:text-slate-500 leading-relaxed"
                       style={{ fontSize: 16 }}
                     />
                   ) : (
-                    <div className="flex-1 text-xs py-1.5" style={{ color: "#cbd5e1" }}>
-                      {tactic.notes?.positions?.[noteKey] || ROLE_NOTES[tactic.formation]?.[slot.role] || "—"}
+                    <div className="text-sm leading-relaxed" style={{ color: "#fff" }}>
+                      {tactic.notes?.positions?.[noteKey] || predefined || <span className="italic text-slate-600">—</span>}
                     </div>
                   )}
                 </div>
