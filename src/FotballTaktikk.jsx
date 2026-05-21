@@ -872,7 +872,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   }, [team.players]);
 
   const [tactic, setTactic] = useState(() => {
-    if (savedTactics.length) return autoAssign({ ...savedTactics[savedTactics.length - 1] });
+    if (savedTactics.length) return { ...savedTactics[savedTactics.length - 1] };
     return autoAssign(buildFromFormation("4-4-2"));
   });
   const [dropVal, setDropVal] = useState(() =>
@@ -885,6 +885,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   const [drawingArrow, setDrawingArrow] = useState(null);
   const [selectedArrowId, setSelectedArrowId] = useState(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [saveName, setSaveName] = useState("");
   const [overwriteId, setOverwriteId] = useState("");
   const [saveMode, setSaveMode] = useState("new");
@@ -933,6 +934,21 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     setOverwriteId("");
   };
 
+  const handleConfirmDelete = async () => {
+    const newList = (team.tactics || []).filter(x => x.id !== tactic.id);
+    const next = { ...db, teams: db.teams.map(tm => tm.id === team.id ? { ...tm, tactics: newList } : tm) };
+    setDB(next);
+    await storage.set(DB_KEY, next);
+    if (newList.length) {
+      setTactic({ ...newList[newList.length - 1] });
+      setDropVal(`tactic:${newList[newList.length - 1].id}`);
+    } else {
+      setTactic(autoAssign(buildFromFormation("4-4-2")));
+      setDropVal("formation:4-4-2");
+    }
+    setShowDeleteDialog(false);
+  };
+
   const assignPlayer = useCallback((slotId, playerId) => {
     setTactic(prev => {
       const updated = {
@@ -957,7 +973,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     } else {
       const id = val.slice(7);
       const found = (team.tactics || []).find(t => t.id === id);
-      if (found) setTactic(autoAssign({ ...found }));
+      if (found) setTactic({ ...found });
     }
   };
 
@@ -1124,6 +1140,15 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
               style={{ background: "rgba(132,204,22,0.15)", border: "1px solid rgba(132,204,22,0.35)", color: "#84cc16" }}
             >
               <Save className="w-4 h-4" /> Lagre
+            </button>
+          )}
+          {write && savedTactics.some(t => t.id === tactic.id) && (
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              className="px-3 py-2 rounded-xl text-sm font-bold flex-shrink-0 flex items-center gap-1.5"
+              style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.35)", color: "#f87171" }}
+            >
+              <Trash2 className="w-4 h-4" />
             </button>
           )}
           {write && (
@@ -1388,6 +1413,33 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
               disabled={saveMode === "new" ? !saveName.trim() : !overwriteId}
               className="flex-1 py-2 rounded-lg text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
               Lagre
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {showDeleteDialog && (
+      <div className="fixed inset-0 z-50 flex items-end justify-center"
+        style={{ background: "rgba(0,0,0,0.55)" }}
+        onClick={() => setShowDeleteDialog(false)}>
+        <div className="w-full rounded-t-2xl px-4 pt-4 pb-6 space-y-3"
+          style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
+          onClick={e => e.stopPropagation()}>
+          <div className="font-bold text-white text-sm">Slett taktikk</div>
+          <div className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+            Er du sikker på at du vil slette <span className="text-white font-semibold">«{tactic.name}»</span>? Dette kan ikke angres.
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setShowDeleteDialog(false)}
+              className="flex-1 py-2 rounded-lg text-sm font-semibold"
+              style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+              Avbryt
+            </button>
+            <button onClick={handleConfirmDelete}
+              className="flex-1 py-2 rounded-lg text-sm font-bold"
+              style={{ background: "rgba(239,68,68,0.9)", color: "#fff" }}>
+              Slett
             </button>
           </div>
         </div>
