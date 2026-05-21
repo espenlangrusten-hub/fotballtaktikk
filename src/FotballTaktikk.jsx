@@ -484,7 +484,7 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
         <>
           <div className="text-xs font-bold tracking-widest mt-6 mb-3" style={{ color: "#475569" }}>VELG LAG</div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...teams].sort((a, b) => a.name.localeCompare(b.name, "nb", { numeric: true })).map(team => (
+            {[...teams].sort((a, b) => a.name.localeCompare(b.name, "nb", { numeric: true, sensitivity: "base" })).map(team => (
               <TeamCard key={team.id} team={team} user={user} onClick={() => onOpenTeam(team.id)} />
             ))}
           </div>
