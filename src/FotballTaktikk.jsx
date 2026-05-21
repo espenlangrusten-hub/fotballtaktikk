@@ -655,26 +655,20 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   const write = canWrite(user, team.id);
   const tactics = team.tactics || [];
 
-  const [tactic, setTactic] = useState(() => {
-    if (tactics.length) return { ...tactics[tactics.length - 1] };
-    return null;
-  });
+  const [tactic, setTactic] = useState(() =>
+    tactics.length ? { ...tactics[tactics.length - 1] } : null
+  );
+  const [selectedPlayerId, setSelectedPlayerId] = useState(null);
 
-  const [showAssign, setShowAssign] = useState(null);
-
-  // Keep tactic in sync when team.tactics changes externally
   useEffect(() => {
     const list = team.tactics || [];
     if (!tactic && list.length) setTactic({ ...list[list.length - 1] });
   }, [team.tactics]);
 
-  const saveTacticToDb = useCallback(async (updatedTactic) => {
+  const saveTacticToDb = useCallback(async (t) => {
     const list = team.tactics || [];
-    const exists = list.some(t => t.id === updatedTactic.id);
-    const newList = exists
-      ? list.map(x => x.id === updatedTactic.id ? updatedTactic : x)
-      : [...list, updatedTactic];
-    const next = { ...db, teams: db.teams.map(t => t.id === team.id ? { ...t, tactics: newList } : t) };
+    const newList = list.some(x => x.id === t.id) ? list.map(x => x.id === t.id ? t : x) : [...list, t];
+    const next = { ...db, teams: db.teams.map(tm => tm.id === team.id ? { ...tm, tactics: newList } : tm) };
     setDB(next);
     await storage.set(DB_KEY, next);
   }, [db, setDB, team.id]);
@@ -690,11 +684,10 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
       }),
     };
     setTactic(updated);
-    setShowAssign(null);
     saveTacticToDb(updated);
   }, [tactic, saveTacticToDb]);
 
-  const autoAssignPlayers = useCallback((t) => {
+  const autoAssign = useCallback((t) => {
     const used = new Set();
     const slots = t.slots.map(slot => {
       const g = roleGroup(slot.role);
@@ -707,15 +700,36 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     return { ...t, slots };
   }, [team.players]);
 
-  const switchTactic = useCallback((tacticId) => {
+  const switchTactic = (tacticId) => {
     const found = (team.tactics || []).find(t => t.id === tacticId);
-    if (!found) return;
-    setTactic(autoAssignPlayers(found));
-  }, [team.tactics, autoAssignPlayers]);
+    if (found) { setTactic(autoAssign(found)); setSelectedPlayerId(null); }
+  };
+
+  // Tap a slot on the pitch
+  const handleSlotTap = (slot) => {
+    if (!write) return;
+    if (selectedPlayerId) {
+      assignPlayer(slot.id, selectedPlayerId);
+      setSelectedPlayerId(null);
+    } else if (slot.playerId) {
+      // tap occupied slot with no selection → deassign
+      assignPlayer(slot.id, null);
+    }
+  };
+
+  // Tap a player chip
+  const handlePlayerTap = (playerId) => {
+    if (!write) return;
+    setSelectedPlayerId(p => p === playerId ? null : playerId);
+  };
 
   const sortedPlayers = useMemo(() =>
     [...team.players].sort((a,b) => (a.number||999) - (b.number||999))
   , [team.players]);
+
+  const unassigned = useMemo(() =>
+    tactic ? sortedPlayers.filter(p => !tactic.slots.some(s => s.playerId === p.id)) : sortedPlayers
+  , [sortedPlayers, tactic]);
 
   if (!tactic) {
     return (
@@ -724,7 +738,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
         <div className="text-center">
           <Target className="w-14 h-14 mx-auto mb-4" style={{ color: "rgba(255,255,255,0.2)" }} />
           <div className="font-display text-2xl text-white mb-2">Ingen taktikk lagret ennå</div>
-          <div className="text-slate-400 text-sm mb-6">Gå til taktikkbrettet for å opprette din første taktikk</div>
+          <p className="text-slate-400 text-sm mb-6">Gå til taktikkbrettet for å opprette din første taktikk</p>
           <button onClick={() => setTab("taktikk")}
             className="px-6 py-3 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-bold text-sm inline-flex items-center gap-2">
             <Target className="w-4 h-4" /> Taktikkbrett
@@ -734,20 +748,20 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     );
   }
 
+  const pitchHasSelection = !!selectedPlayerId;
+
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(155deg, #08111e 0%, #0d2340 45%, #08111e 100%)" }}>
-      <div className="px-3 sm:px-5 py-4 max-w-6xl mx-auto">
+      <div className="px-3 sm:px-5 pt-4 pb-8 max-w-2xl mx-auto">
 
-        {/* TOP BAR */}
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
-          <div className="text-[10px] font-bold tracking-widest" style={{ color: "#475569" }}>LAGOVERSIKT</div>
-          <div className="flex-1" />
-          {tactics.length > 1 && (
+        {/* ── DROPDOWN + AUTO-ASSIGN ── */}
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          {tactics.length > 0 ? (
             <select
               value={tactic.id}
               onChange={e => switchTactic(e.target.value)}
-              className="px-3 py-2 rounded-lg text-sm outline-none cursor-pointer"
-              style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.12)", color: "#e2e8f0" }}
+              className="flex-1 min-w-0 px-3 py-2 rounded-xl text-sm outline-none cursor-pointer font-semibold"
+              style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.14)", color: "#e2e8f0" }}
             >
               {tactics.map(t => (
                 <option key={t.id} value={t.id} style={{ background: "#0d2340" }}>
@@ -755,118 +769,161 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
                 </option>
               ))}
             </select>
+          ) : (
+            <div className="flex-1 text-sm text-slate-500 italic">Ingen taktikk lagret</div>
           )}
           {write && (
             <button
-              onClick={() => { const u = autoAssignPlayers(tactic); setTactic(u); saveTacticToDb(u); }}
-              className="px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+              onClick={() => { const u = autoAssign(tactic); setTactic(u); saveTacticToDb(u); setSelectedPlayerId(null); }}
+              className="px-3 py-2 rounded-xl text-sm font-semibold flex-shrink-0 flex items-center gap-1.5"
               style={{ background: "rgba(132,204,22,0.1)", border: "1px solid rgba(132,204,22,0.25)", color: "#84cc16" }}
             >
-              <Activity className="w-4 h-4" /> Auto-tilord
+              <Activity className="w-4 h-4" /> Auto
             </button>
           )}
         </div>
 
-        {/* MAIN: pitch + player list */}
-        <div className="flex gap-3 items-start" style={{ minHeight: "calc(100vh - 200px)" }}>
-
-          {/* PITCH — height-driven, width follows aspect-ratio */}
-          <div className="flex-shrink-0" style={{ height: "calc(100vh - 200px)" }}>
-            <div
-              className="relative pitch-grad rounded-2xl overflow-hidden no-select h-full"
-              style={{ aspectRatio: "68/100", touchAction: "none" }}
-            >
-              <PitchMarkings />
-              {tactic.slots.map(slot => {
-                const player = team.players.find(p => p.id === slot.playerId);
-                const posMeta = POSITION_BY_CODE[slot.role];
-                return (
-                  <div
-                    key={slot.id}
-                    onClick={() => write && setShowAssign(slot.id)}
-                    className="absolute no-select"
-                    style={{
-                      left: `${slot.x}%`, top: `${slot.y}%`,
-                      transform: "translate(-50%,-50%)",
-                      cursor: write ? "pointer" : "default",
-                      zIndex: 10,
-                    }}
-                  >
-                    <div className="flex flex-col items-center pointer-events-none" style={{ gap: 2 }}>
-                      <div
-                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-white shadow-lg"
-                        style={{
-                          background: player
-                            ? "linear-gradient(160deg, #c0392b 0%, #96281b 100%)"
-                            : "rgba(0,0,0,0.35)",
-                          border: player
-                            ? "2.5px solid rgba(255,255,255,0.5)"
-                            : `2px dashed ${posMeta?.color || "#fff"}80`,
-                          boxShadow: "0 3px 10px rgba(0,0,0,0.45)",
-                          color: player ? "#fff" : (posMeta?.color || "#fff"),
-                        }}
-                      >
-                        <span className="font-mono text-xs leading-none">
-                          {player ? (player.number ?? "?") : slot.role}
-                        </span>
-                      </div>
-                      <div className="rounded px-1 py-0.5 text-center"
-                        style={{ background: "rgba(10,14,20,0.88)", border: `1px solid ${posMeta?.color || "#84cc16"}55`, minWidth: 44 }}>
-                        <div className="text-[8px] font-bold tracking-wider" style={{ color: posMeta?.color || "#84cc16" }}>{slot.role}</div>
-                        <div className="text-[9px] text-white font-semibold truncate" style={{ maxWidth: 60 }}>
-                          {player ? player.name.split(" ").slice(-1)[0] : <span style={{ color: "rgba(255,255,255,0.25)" }}>—</span>}
-                        </div>
+        {/* ── PITCH ── */}
+        {pitchHasSelection && (
+          <div className="text-center text-xs mb-2 font-semibold" style={{ color: "#84cc16" }}>
+            Trykk på en posisjon på banen for å plassere spilleren
+          </div>
+        )}
+        <div className="flex justify-center mb-4">
+          <div
+            className="relative pitch-grad rounded-2xl overflow-hidden no-select w-full"
+            style={{
+              maxWidth: "360px",
+              aspectRatio: "68/100",
+              touchAction: "none",
+            }}
+          >
+            <PitchMarkings />
+            {tactic.slots.map(slot => {
+              const player = team.players.find(p => p.id === slot.playerId);
+              const posMeta = POSITION_BY_CODE[slot.role];
+              const isEmpty = !player;
+              const glowSlot = pitchHasSelection && isEmpty; // highlight open slots when player selected
+              return (
+                <div
+                  key={slot.id}
+                  onClick={() => handleSlotTap(slot)}
+                  className="absolute no-select"
+                  style={{
+                    left: `${slot.x}%`, top: `${slot.y}%`,
+                    transform: "translate(-50%,-50%)",
+                    cursor: write ? "pointer" : "default",
+                    zIndex: 10,
+                  }}
+                >
+                  <div className="flex flex-col items-center pointer-events-none" style={{ gap: 2 }}>
+                    <div
+                      className="rounded-full flex items-center justify-center font-bold text-white shadow-lg"
+                      style={{
+                        width: 36, height: 36,
+                        background: player
+                          ? "linear-gradient(160deg,#c0392b 0%,#96281b 100%)"
+                          : glowSlot ? "rgba(132,204,22,0.15)" : "rgba(0,0,0,0.35)",
+                        border: player
+                          ? "2.5px solid rgba(255,255,255,0.5)"
+                          : glowSlot
+                            ? "2px solid #84cc16"
+                            : `2px dashed ${posMeta?.color || "#fff"}60`,
+                        boxShadow: glowSlot ? "0 0 12px rgba(132,204,22,0.4)" : player ? "0 3px 10px rgba(0,0,0,0.5)" : "none",
+                        color: player ? "#fff" : glowSlot ? "#84cc16" : (posMeta?.color || "#fff"),
+                        fontSize: 12,
+                      }}
+                    >
+                      {player ? (player.number ?? "?") : slot.role}
+                    </div>
+                    <div className="rounded px-1 py-0.5 text-center"
+                      style={{ background: "rgba(8,14,22,0.88)", border: `1px solid ${posMeta?.color || "#84cc16"}50`, minWidth: 42 }}>
+                      <div className="font-bold tracking-wide" style={{ fontSize: 8, color: posMeta?.color || "#84cc16" }}>{slot.role}</div>
+                      <div className="font-semibold text-white truncate" style={{ fontSize: 9, maxWidth: 58 }}>
+                        {player ? player.name.split(" ").slice(-1)[0] : <span style={{ color: "rgba(255,255,255,0.2)" }}>—</span>}
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* PLAYER LIST — plain text, right side */}
-          <div className="flex-1 overflow-y-auto scrollbar-thin" style={{ height: "calc(100vh - 200px)" }}>
-            <div className="text-[10px] font-bold tracking-widest mb-3" style={{ color: "#475569" }}>
-              STALL ({team.players.length})
-            </div>
-            {sortedPlayers.length === 0 ? (
-              <div className="text-sm italic py-4" style={{ color: "rgba(255,255,255,0.2)" }}>Ingen spillere</div>
-            ) : sortedPlayers.map(p => {
-              const onPitch = tactic.slots.some(s => s.playerId === p.id);
-              const posMeta = POSITION_BY_CODE[p.positions[0]];
-              return (
-                <div key={p.id} className="flex items-center gap-2 py-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: onPitch ? "#84cc16" : "rgba(255,255,255,0.1)" }} />
-                  <span className="font-mono text-[11px] w-5 text-right flex-shrink-0"
-                    style={{ color: onPitch ? "#84cc16" : "rgba(255,255,255,0.3)" }}>
-                    {p.number || "—"}
-                  </span>
-                  <span className="text-sm flex-1 truncate"
-                    style={{ color: onPitch ? "#fff" : "rgba(255,255,255,0.5)" }}>
-                    {p.name}
-                  </span>
-                  <span className="text-[9px] font-bold flex-shrink-0"
-                    style={{ color: posMeta?.color || "#475569" }}>
-                    {p.positions[0] || ""}
-                  </span>
                 </div>
               );
             })}
           </div>
         </div>
-      </div>
 
-      {/* ASSIGN MODAL */}
-      {showAssign && tactic && (
-        <AssignPlayerModal
-          slot={tactic.slots.find(s => s.id === showAssign)}
-          players={team.players}
-          currentPlayerId={tactic.slots.find(s => s.id === showAssign)?.playerId}
-          usedPlayerIds={tactic.slots.filter(s => s.id !== showAssign && s.playerId).map(s => s.playerId)}
-          onAssign={(pid) => assignPlayer(showAssign, pid)}
-          onClose={() => setShowAssign(null)} />
-      )}
+        {/* ── UNASSIGNED PLAYERS ── */}
+        {write && (
+          <div>
+            <div className="text-[10px] font-bold tracking-widest mb-2" style={{ color: "#475569" }}>
+              {unassigned.length > 0
+                ? `IKKE TILORDNET (${unassigned.length}) — trykk for å velge, trykk deretter på posisjonen`
+                : "ALLE SPILLERE ER TILORDNET"}
+            </div>
+            {unassigned.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {unassigned.map(p => {
+                  const isSelected = selectedPlayerId === p.id;
+                  const posMeta = POSITION_BY_CODE[p.positions[0]];
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => handlePlayerTap(p.id)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
+                      style={{
+                        background: isSelected ? "#84cc16" : "rgba(255,255,255,0.07)",
+                        border: `1px solid ${isSelected ? "#84cc16" : "rgba(255,255,255,0.12)"}`,
+                        color: isSelected ? "#0f172a" : "rgba(255,255,255,0.8)",
+                        boxShadow: isSelected ? "0 0 16px rgba(132,204,22,0.5)" : "none",
+                      }}
+                    >
+                      <span className="font-mono text-xs opacity-70">{p.number || "—"}</span>
+                      {p.name}
+                      <span className="text-[9px] font-bold opacity-60" style={{ color: isSelected ? "#0f172a" : posMeta?.color }}>
+                        {p.positions[0] || ""}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {unassigned.length === 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {sortedPlayers.map(p => {
+                  const posMeta = POSITION_BY_CODE[p.positions[0]];
+                  return (
+                    <div key={p.id} className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs"
+                      style={{ background: "rgba(132,204,22,0.08)", border: "1px solid rgba(132,204,22,0.2)", color: "rgba(255,255,255,0.6)" }}>
+                      <span className="font-mono opacity-50">{p.number || "—"}</span>
+                      {p.name.split(" ").pop()}
+                      <span style={{ color: posMeta?.color || "#84cc16", fontSize: 9 }}>{p.positions[0]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Read-only assigned list */}
+        {!write && (
+          <div className="space-y-1 mt-2">
+            {sortedPlayers.map(p => {
+              const onPitch = tactic.slots.some(s => s.playerId === p.id);
+              const posMeta = POSITION_BY_CODE[p.positions[0]];
+              return (
+                <div key={p.id} className="flex items-center gap-2 py-1">
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ background: onPitch ? "#84cc16" : "rgba(255,255,255,0.1)" }} />
+                  <span className="font-mono text-[11px] w-5 text-right flex-shrink-0"
+                    style={{ color: onPitch ? "#84cc16" : "rgba(255,255,255,0.3)" }}>{p.number || "—"}</span>
+                  <span className="text-sm flex-1 truncate"
+                    style={{ color: onPitch ? "#fff" : "rgba(255,255,255,0.4)" }}>{p.name}</span>
+                  <span className="text-[9px] font-bold" style={{ color: posMeta?.color || "#475569" }}>{p.positions[0] || ""}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
