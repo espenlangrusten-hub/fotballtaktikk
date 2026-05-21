@@ -577,7 +577,7 @@ function TeamView({ team, user, db, setDB, onBack }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: "#020617" }}>
       {/* Sticky tab bar — sits right below the sticky global header */}
       <div className="sticky top-[60px] z-20 bg-slate-950/95 backdrop-blur-xl border-b border-slate-800">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
@@ -1398,11 +1398,10 @@ function TacticsView({ team, user, db, setDB }) {
   const [showFormations, setShowFormations] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
 
-  // ---- sidebar drag state ----
-  // sidebarDrag: { playerId, ghostX, ghostY } | null
-  const [sidebarDrag, setSidebarDrag] = useState(null);
-  // slot id highlighted as drop target
-  const [dropTarget, setDropTarget] = useState(null);
+  // ---- sidebar click-to-select state ----
+  const [selectedSidebarPlayerId, setSelectedSidebarPlayerId] = useState(null);
+  const selectedSidebarRef = useRef(null);
+  useEffect(() => { selectedSidebarRef.current = selectedSidebarPlayerId; }, [selectedSidebarPlayerId]);
 
   const pitchRef = useRef(null);
   const [livePos, setLivePos] = useState(null); // { x, y } | null — position of dragged slot
@@ -1442,41 +1441,6 @@ function TacticsView({ team, user, db, setDB }) {
     }));
     setShowAssign(null);
   }, []);
-
-  // ---- document-level listeners for sidebar drag ----
-  useEffect(() => {
-    if (!sidebarDrag) return;
-    const onMove = (e) => {
-      e.preventDefault(); // prevent page scroll while dragging from sidebar
-      const cx = e.clientX ?? e.touches?.[0]?.clientX;
-      const cy = e.clientY ?? e.touches?.[0]?.clientY;
-      setSidebarDrag(d => d ? { ...d, ghostX: cx, ghostY: cy } : null);
-      const slot = nearestSlot(cx, cy);
-      setDropTarget(slot?.id ?? null);
-    };
-    const onUp = (e) => {
-      const cx = e.clientX ?? e.changedTouches?.[0]?.clientX;
-      const cy = e.clientY ?? e.changedTouches?.[0]?.clientY;
-      const slot = nearestSlot(cx, cy);
-      if (slot) assignPlayer(slot.id, sidebarDrag.playerId);
-      setSidebarDrag(null);
-      setDropTarget(null);
-    };
-    // passive: false lets us call preventDefault() to block scroll during drag
-    document.addEventListener("pointermove", onMove, { passive: false });
-    document.addEventListener("pointerup", onUp);
-    return () => {
-      document.removeEventListener("pointermove", onMove);
-      document.removeEventListener("pointerup", onUp);
-    };
-  }, [sidebarDrag, nearestSlot, assignPlayer]);
-
-  // ---- sidebar drag start ----
-  const startSidebarDrag = (e, player) => {
-    if (!write) return;
-    e.preventDefault();
-    setSidebarDrag({ playerId: player.id, ghostX: e.clientX, ghostY: e.clientY });
-  };
 
   // ---- pitch slot drag: document-level listeners (avoids pointerleave/capture issues) ----
   const onSlotPointerDown = (e, slot) => {
@@ -1526,7 +1490,13 @@ function TacticsView({ team, user, db, setDB }) {
       if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
 
       if (!active) {
-        setShowAssign(slotId);
+        const selId = selectedSidebarRef.current;
+        if (selId) {
+          assignPlayer(slotId, selId);
+          setSelectedSidebarPlayerId(null);
+        } else {
+          setShowAssign(slotId);
+        }
       } else {
         setTactic(t => ({ ...t, slots: t.slots.map(s => s.id === slotId ? { ...s, ...latestPos } : s) }));
       }
@@ -1735,8 +1705,8 @@ function TacticsView({ team, user, db, setDB }) {
             }}
             onPointerMove={onPitchPointerMove}
             onPointerUp={onPitchPointerUp}
-            className="relative w-full pitch-grad shadow-2xl no-select rounded-xl overflow-hidden"
-            style={{ aspectRatio: "68 / 100", touchAction: "none", border: "1.5px solid rgba(255,255,255,0.15)" }}
+            className="relative w-full pitch-grad no-select rounded-xl overflow-hidden"
+            style={{ aspectRatio: "68 / 100", touchAction: "none" }}
           >
             <PitchMarkings />
 
@@ -1777,7 +1747,6 @@ function TacticsView({ team, user, db, setDB }) {
               const player = playerById(slot.playerId);
               const posMeta = POSITION_BY_CODE[slot.role];
               const isDragging = draggingSlot === slot.id;
-              const isDropTarget = dropTarget === slot.id;
               return (
                 <div
                   key={slot.id}
@@ -1792,14 +1761,14 @@ function TacticsView({ team, user, db, setDB }) {
                     zIndex: isDragging ? 50 : 10,
                   }}
                 >
-                  <div className={`flex flex-col items-center pointer-events-none transition-transform ${isDragging ? "scale-110" : isDropTarget ? "scale-105" : ""}`} style={{ gap: 2 }}>
+                  <div className={`flex flex-col items-center pointer-events-none transition-transform ${isDragging ? "scale-110" : ""}`} style={{ gap: 2 }}>
                     {/* Jersey circle */}
                     <div
                       className="rounded-full flex items-center justify-center font-bold shadow-lg"
                       style={{
                         width: 32, height: 32,
                         background: player ? "linear-gradient(160deg,#c0392b 0%,#96281b 100%)" : "rgba(0,0,0,0.4)",
-                        border: isDropTarget ? "2px solid #fff" : player ? "2px solid rgba(255,255,255,0.55)" : `2px dashed ${posMeta?.color || "#fff"}70`,
+                        border: player ? "2px solid rgba(255,255,255,0.55)" : `2px dashed ${posMeta?.color || "#fff"}70`,
                         color: player ? "#fff" : (posMeta?.color || "#fff"),
                         fontSize: 10, fontWeight: "800",
                       }}
@@ -1817,8 +1786,10 @@ function TacticsView({ team, user, db, setDB }) {
           </div>
 
           {write && (
-            <div className="text-[10px] mt-1.5 text-center" style={{ color: "rgba(255,255,255,0.3)" }}>
-              {mode === "move" ? "Dra brikke · Dra fra stall · Trykk for tilordning" : "Dra fra spiller for å tegne løp"}
+            <div className="text-[10px] mt-1.5 text-center" style={{ color: selectedSidebarPlayerId ? "rgba(132,204,22,0.8)" : "rgba(255,255,255,0.3)" }}>
+              {selectedSidebarPlayerId
+                ? "Trykk på en posisjon for å plassere spilleren"
+                : mode === "move" ? "Dra brikke · Trykk for å tilordne" : "Dra fra spiller for å tegne løp"}
             </div>
           )}
         </div>
@@ -1830,18 +1801,25 @@ function TacticsView({ team, user, db, setDB }) {
           </div>
           <div className="overflow-y-auto scrollbar-thin" style={{ maxHeight: "calc(100vh - 180px)" }}>
             {sortedPlayers.filter(p => !tactic.slots.some(s => s.playerId === p.id)).map(p => {
-              const isDraggingThis = sidebarDrag?.playerId === p.id;
+              const isSelected = selectedSidebarPlayerId === p.id;
               const posMeta = POSITION_BY_CODE[p.positions[0]];
               return (
                 <div key={p.id}
-                  onPointerDown={(e) => startSidebarDrag(e, p)}
-                  className="no-select flex items-center gap-1 py-0.5"
-                  style={{ opacity: isDraggingThis ? 0.2 : 1, cursor: write ? "grab" : "default", touchAction: "none" }}
+                  onClick={() => {
+                    if (!write) return;
+                    setSelectedSidebarPlayerId(id => id === p.id ? null : p.id);
+                  }}
+                  className="no-select flex items-center gap-1 py-0.5 rounded"
+                  style={{
+                    cursor: write ? "pointer" : "default",
+                    background: isSelected ? "rgba(132,204,22,0.15)" : "transparent",
+                    outline: isSelected ? "1px solid rgba(132,204,22,0.5)" : "none",
+                  }}
                 >
-                  <span style={{ fontSize: 9, fontWeight: "700", color: posMeta?.color || "#64748b", flexShrink: 0, minWidth: 14, textAlign: "right" }}>
+                  <span style={{ fontSize: 9, fontWeight: "700", color: isSelected ? "#84cc16" : (posMeta?.color || "#64748b"), flexShrink: 0, minWidth: 14, textAlign: "right" }}>
                     {p.number || ""}
                   </span>
-                  <span style={{ fontSize: 10, fontWeight: "500", color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 10, fontWeight: "500", color: isSelected ? "#84cc16" : "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {p.name.split(" ").slice(-1)[0]}
                   </span>
                 </div>
@@ -1853,32 +1831,6 @@ function TacticsView({ team, user, db, setDB }) {
           </div>
         </div>
       </div>
-
-      {/* ===== DRAG GHOST (follows cursor) ===== */}
-      {sidebarDrag && (() => {
-        const p = team.players.find(x => x.id === sidebarDrag.playerId);
-        if (!p) return null;
-        const posMeta = POSITION_BY_CODE[p.positions[0]];
-        return (
-          <div className="fixed z-[9999] pointer-events-none"
-            style={{ left: sidebarDrag.ghostX, top: sidebarDrag.ghostY, transform: "translate(-50%,-50%)" }}>
-            <div className="flex flex-col items-center gap-1 drop-shadow-2xl">
-              <div className="w-12 h-12 rounded-full border-[3px] flex items-center justify-center font-mono text-sm font-bold"
-                style={{
-                  backgroundColor: "#0f172a",
-                  borderColor: posMeta?.color || "#84cc16",
-                  color: posMeta?.color || "#84cc16",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.7)",
-                }}>
-                {p.number || ""}
-              </div>
-              <div className="text-xs font-semibold text-white bg-slate-950/90 px-2 py-0.5 rounded whitespace-nowrap">
-                {p.name.split(" ")[0]}
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
       {/* ===== TACTICAL NOTES ===== */}
       <div className="mt-6 space-y-4">
