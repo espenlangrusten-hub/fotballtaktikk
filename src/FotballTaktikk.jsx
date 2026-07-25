@@ -24,11 +24,15 @@ const GlobalStyles = () => (
     body { font-family: 'Manrope', sans-serif; background: #020617; }
     .pitch-grad {
       background:
+        repeating-radial-gradient(circle at 50% 50%,
+          rgba(255,255,255,0.035) 0 28px,
+          rgba(0,0,0,0.022) 28px 56px
+        ),
         repeating-linear-gradient(180deg,
-          rgba(0,0,0,0.08) 0% 9%,
+          rgba(0,0,0,0.07) 0% 9%,
           transparent 9% 18%
         ),
-        linear-gradient(180deg, #3a9e48 0%, #2e8a3c 50%, #3a9e48 100%);
+        linear-gradient(168deg, #3fa855 0%, #2f9245 48%, #26803c 100%);
     }
     .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(132, 204, 22, 0.3); border-radius: 3px; }
@@ -612,8 +616,7 @@ function Header({ user, club, onLogout, breadcrumbs, onBack, onAdmin, currentVie
 function ClubView({ user, db, setDB, onOpenTeam }) {
   const [showNew, setShowNew] = useState(false);
   const [name, setName] = useState("");
-  const [year, setYear] = useState(new Date().getFullYear() - 13);
-  const [variant, setVariant] = useState("1");
+  const [year, setYear] = useState(2012);
 
   const teams = visibleTeams(user, db.teams);
   const isAdminUser = isAdmin(user);
@@ -621,12 +624,12 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
   const createTeam = async () => {
     if (!name.trim()) return;
     const team = {
-      id: uid(), name: name.trim(), ageYear: year, variant, format: "11v11",
+      id: uid(), name: name.trim(), ageYear: year, variant: "", format: "11v11",
       players: [], tactics: [], createdAt: Date.now(),
     };
     const next = { ...db, teams: [...db.teams, team] };
     setDB(next); await storage.set(DB_KEY, next);
-    setShowNew(false); setName(""); setVariant("1");
+    setShowNew(false); setName(""); setYear(2012);
   };
 
   return (
@@ -689,16 +692,10 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
               <input value={name} onChange={e => setName(e.target.value)} placeholder="f.eks. Monolitten G14"
                 className="bg-transparent w-full outline-none text-white placeholder:text-slate-600" autoFocus />
             </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field icon={<Activity className="w-4 h-4" />} label="Årskull">
-                <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value) || year)}
-                  className="bg-transparent w-full outline-none text-white" />
-              </Field>
-              <Field icon={<Target className="w-4 h-4" />} label="Variant">
-                <input value={variant} onChange={e => setVariant(e.target.value)} placeholder="1, 2, A, B..."
-                  className="bg-transparent w-full outline-none text-white placeholder:text-slate-600" />
-              </Field>
-            </div>
+            <Field icon={<Activity className="w-4 h-4" />} label="Årskull">
+              <input type="number" value={year} onChange={e => setYear(parseInt(e.target.value) || year)}
+                className="bg-transparent w-full outline-none text-white" style={{ fontSize: 16 }} />
+            </Field>
             <div className="text-xs text-slate-500 bg-slate-950/50 border border-slate-800 rounded-lg p-3">
               Format: <span className="text-lime-400 font-semibold">11-er fotball</span>
             </div>
@@ -1254,7 +1251,6 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
               const isDragging = draggingSlot === slot.id;
               const pos = isDragging && livePos ? livePos : { x: slot.x, y: slot.y };
               const player = team.players.find(p => p.id === slot.playerId);
-              const posMeta = POSITION_BY_CODE[slot.role];
               const glowSlot = pitchHasSelection && !player;
               return (
                 <div
@@ -1268,31 +1264,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
                     zIndex: isDragging ? 30 : 10,
                   }}
                 >
-                  <div className="flex flex-col items-center pointer-events-none" style={{ gap: 2 }}>
-                    <div
-                      className="rounded-full flex items-center justify-center font-bold shadow-lg"
-                      style={{
-                        width: 36, height: 36,
-                        background: player
-                          ? "linear-gradient(160deg,#c0392b 0%,#96281b 100%)"
-                          : glowSlot ? "rgba(132,204,22,0.15)" : "rgba(0,0,0,0.35)",
-                        border: player
-                          ? "2.5px solid rgba(255,255,255,0.5)"
-                          : glowSlot ? "2px solid #84cc16"
-                          : `2px dashed ${posMeta?.color || "#fff"}60`,
-                        boxShadow: isDragging ? "0 6px 20px rgba(0,0,0,0.7)" : glowSlot ? "0 0 12px rgba(132,204,22,0.4)" : player ? "0 3px 10px rgba(0,0,0,0.5)" : "none",
-                        color: player ? "#fff" : glowSlot ? "#84cc16" : (posMeta?.color || "#fff"),
-                        fontSize: 12,
-                      }}
-                    >
-                      {player ? (player.number || "") : slot.role}
-                    </div>
-                    <div className="text-center" style={{ minWidth: 42 }}>
-                      <div className="font-semibold text-white truncate" style={{ fontSize: 10, maxWidth: 58, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>
-                        {player ? shortName(player.name) : ""}
-                      </div>
-                    </div>
-                  </div>
+                  <PitchToken player={player} role={slot.role} size={38} dragging={isDragging} glow={glowSlot} />
                 </div>
               );
             })}
@@ -1322,20 +1294,33 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
                     if (!write) return;
                     setSelectedPlayerId(prev => prev === p.id ? null : p.id);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all"
+                  className="flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-lg text-sm font-semibold transition-all"
                   style={{
-                    background: isSelected ? "#84cc16" : "rgba(255,255,255,0.09)",
-                    border: `1px solid ${isSelected ? "#84cc16" : "rgba(255,255,255,0.14)"}`,
-                    color: isSelected ? "#0f172a" : "rgba(255,255,255,0.85)",
-                    boxShadow: isSelected ? "0 0 16px rgba(132,204,22,0.5)" : "none",
+                    background: isSelected ? "rgba(132,204,22,0.18)" : "rgba(255,255,255,0.06)",
+                    border: `1px solid ${isSelected ? "#84cc16" : "rgba(255,255,255,0.12)"}`,
+                    color: isSelected ? "#bef264" : "rgba(255,255,255,0.9)",
+                    boxShadow: isSelected ? "0 0 16px rgba(132,204,22,0.35)" : "none",
                     cursor: write ? "pointer" : "default",
                   }}
                 >
-                  <span className="font-mono text-xs opacity-70">{p.number || "—"}</span>
-                  {p.name}
-                  <span className="text-[9px] font-bold opacity-50" style={{ color: isSelected ? "#0f172a" : posMeta?.color }}>
-                    {p.positions[0] || ""}
+                  <span
+                    className="flex items-center justify-center"
+                    style={{
+                      minWidth: 30, height: 20, padding: "0 5px", borderRadius: 5,
+                      background: isSelected
+                        ? "linear-gradient(165deg,#bef264 0%,#84cc16 100%)"
+                        : `${posMeta?.color || "#64748b"}22`,
+                      border: `1px solid ${isSelected ? "transparent" : `${posMeta?.color || "#64748b"}55`}`,
+                      color: isSelected ? "#0f172a" : (posMeta?.color || "#94a3b8"),
+                      fontSize: 9, fontWeight: 800, letterSpacing: "0.02em",
+                    }}
+                  >
+                    {p.positions[0] || "—"}
                   </span>
+                  <span>{shortName(p.name)}</span>
+                  {p.number != null && p.number !== "" && (
+                    <span className="font-mono text-[10px]" style={{ opacity: 0.5 }}>{p.number}</span>
+                  )}
                 </button>
               );
             })}
@@ -2056,7 +2041,6 @@ function TacticsView({ team, user, db, setDB }) {
             {/* Player slots */}
             {tactic.slots.map(slot => {
               const player = playerById(slot.playerId);
-              const posMeta = POSITION_BY_CODE[slot.role];
               const isDragging = draggingSlot === slot.id;
               return (
                 <div
@@ -2072,24 +2056,8 @@ function TacticsView({ team, user, db, setDB }) {
                     zIndex: isDragging ? 50 : 10,
                   }}
                 >
-                  <div className={`flex flex-col items-center pointer-events-none transition-transform ${isDragging ? "scale-110" : ""}`} style={{ gap: 2 }}>
-                    {/* Jersey circle */}
-                    <div
-                      className="rounded-full flex items-center justify-center font-bold shadow-lg"
-                      style={{
-                        width: 32, height: 32,
-                        background: player ? "linear-gradient(160deg,#c0392b 0%,#96281b 100%)" : "rgba(0,0,0,0.4)",
-                        border: player ? "2px solid rgba(255,255,255,0.55)" : `2px dashed ${posMeta?.color || "#fff"}70`,
-                        color: player ? "#fff" : (posMeta?.color || "#fff"),
-                        fontSize: 10, fontWeight: "800",
-                      }}
-                    >
-                      {player ? (player.number || "") : slot.role}
-                    </div>
-                    {/* Plain name text only */}
-                    <div style={{ fontSize: 9, fontWeight: "600", color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,1)", maxWidth: 52, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {player ? shortName(player.name) : ""}
-                    </div>
+                  <div className={`transition-transform ${isDragging ? "scale-110" : ""}`}>
+                    <PitchToken player={player} role={slot.role} size={34} dragging={isDragging} />
                   </div>
                 </div>
               );
@@ -2120,17 +2088,28 @@ function TacticsView({ team, user, db, setDB }) {
                     if (!write) return;
                     setSelectedSidebarPlayerId(id => id === p.id ? null : p.id);
                   }}
-                  className="no-select flex items-center gap-1 py-0.5 rounded"
+                  className="no-select flex items-center gap-1.5 px-1 py-1 mb-0.5 rounded-md"
                   style={{
                     cursor: write ? "pointer" : "default",
-                    background: isSelected ? "rgba(132,204,22,0.15)" : "transparent",
-                    outline: isSelected ? "1px solid rgba(132,204,22,0.5)" : "none",
+                    background: isSelected ? "rgba(132,204,22,0.16)" : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${isSelected ? "rgba(132,204,22,0.6)" : "transparent"}`,
                   }}
                 >
-                  <span style={{ fontSize: 9, fontWeight: "700", color: isSelected ? "#84cc16" : (posMeta?.color || "#64748b"), flexShrink: 0, minWidth: 14, textAlign: "right" }}>
-                    {p.number || ""}
+                  <span
+                    className="flex items-center justify-center"
+                    style={{
+                      minWidth: 24, height: 16, padding: "0 3px", borderRadius: 4, flexShrink: 0,
+                      background: isSelected
+                        ? "linear-gradient(165deg,#bef264 0%,#84cc16 100%)"
+                        : `${posMeta?.color || "#64748b"}22`,
+                      border: `1px solid ${isSelected ? "transparent" : `${posMeta?.color || "#64748b"}55`}`,
+                      color: isSelected ? "#0f172a" : (posMeta?.color || "#94a3b8"),
+                      fontSize: 8, fontWeight: 800,
+                    }}
+                  >
+                    {p.positions[0] || "—"}
                   </span>
-                  <span style={{ fontSize: 10, fontWeight: "500", color: isSelected ? "#84cc16" : "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: isSelected ? "#bef264" : "rgba(255,255,255,0.88)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {shortName(p.name)}
                   </span>
                 </div>
@@ -2868,7 +2847,6 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
             <div className="relative w-full pitch-grad rounded-xl overflow-hidden no-select" style={{ aspectRatio: "68/80", touchAction: "none" }}>
               {activeSlots.map(slot => {
                 const player = playerById(slot.playerId);
-                const posMeta = POSITION_BY_CODE[slot.role];
                 if (!player) return null;
                 const isSubOut = subMode && !subOutPlayer;
                 return (
@@ -2879,18 +2857,8 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
                     }}
                     className="absolute flex flex-col items-center"
                     style={{ left: `${slot.x}%`, top: `${slot.y * 0.8}%`, transform: "translate(-50%,-50%)", cursor: isSubOut ? "pointer" : "default" }}>
-                    <div className="rounded-full flex items-center justify-center font-bold shadow-lg"
-                      style={{
-                        width: 28, height: 28,
-                        background: subOutPlayer === slot.playerId ? "#84cc16" : "linear-gradient(160deg,#c0392b 0%,#96281b 100%)",
-                        border: isSubOut ? "2px solid rgba(132,204,22,0.8)" : "2px solid rgba(255,255,255,0.55)",
-                        color: "#fff", fontSize: 9, fontWeight: "800",
-                      }}>
-                      {player.number || ""}
-                    </div>
-                    <div style={{ fontSize: 8, color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,1)", maxWidth: 44, textAlign: "center", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {shortName(player.name)}
-                    </div>
+                    <PitchToken player={player} role={slot.role} size={30}
+                      glow={isSubOut} selected={subOutPlayer === slot.playerId} />
                   </div>
                 );
               })}
@@ -3155,24 +3123,99 @@ function FormationPreview({ formation }) {
   );
 }
 
+// FM-inspired player token: rounded role chip + bold name underneath
+function PitchToken({ player, role, size = 34, dragging = false, glow = false, selected = false }) {
+  const posMeta = POSITION_BY_CODE[role];
+  const filled = !!player;
+  const h = Math.round(size * 0.84);
+  return (
+    <div className="flex flex-col items-center pointer-events-none" style={{ gap: 3 }}>
+      <div style={{ position: "relative" }}>
+        <div
+          className="flex items-center justify-center"
+          style={{
+            width: size, height: h,
+            borderRadius: Math.round(size * 0.27),
+            background: filled
+              ? (selected
+                ? "linear-gradient(165deg,#bef264 0%,#84cc16 100%)"
+                : "linear-gradient(165deg,#6ee787 0%,#22c55e 52%,#15a34a 100%)")
+              : glow ? "rgba(132,204,22,0.18)" : "rgba(2,6,23,0.42)",
+            border: filled
+              ? (selected || glow ? "2px solid rgba(190,242,100,0.95)" : "1.5px solid rgba(255,255,255,0.6)")
+              : glow ? "1.5px solid #84cc16"
+              : `1.5px dashed ${posMeta?.color || "#ffffff"}70`,
+            boxShadow: dragging
+              ? "0 8px 22px rgba(0,0,0,0.75)"
+              : filled
+                ? "0 3px 9px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.35)"
+                : glow ? "0 0 14px rgba(132,204,22,0.45)" : "none",
+            color: filled ? "#052e14" : glow ? "#84cc16" : (posMeta?.color || "#ffffff"),
+            fontSize: Math.max(8, Math.round(size * 0.29)),
+            fontWeight: 800,
+            letterSpacing: "0.02em",
+          }}
+        >
+          {role}
+        </div>
+        {filled && player.number != null && player.number !== "" && (
+          <div
+            className="flex items-center justify-center font-mono"
+            style={{
+              position: "absolute", top: -5, right: -6,
+              minWidth: 15, height: 15, padding: "0 3px",
+              borderRadius: 8,
+              background: "#0f172a",
+              border: "1.5px solid rgba(255,255,255,0.55)",
+              color: "#e2e8f0",
+              fontSize: 8, fontWeight: 700, lineHeight: 1,
+            }}
+          >
+            {player.number}
+          </div>
+        )}
+      </div>
+      {filled && (
+        <div
+          className="truncate"
+          style={{
+            fontSize: Math.max(8, Math.round(size * 0.28)),
+            fontWeight: 700,
+            color: "#ffffff",
+            textShadow: "0 1px 4px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.8)",
+            maxWidth: size * 2,
+            textAlign: "center",
+          }}
+        >
+          {shortName(player.name)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PitchMarkings() {
   return (
     <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 150" preserveAspectRatio="none">
-      <rect x="1.5" y="1.5" width="97" height="147" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      <line x1="1.5" y1="75" x2="98.5" y2="75" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      <circle cx="50" cy="75" r="9" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      <circle cx="50" cy="75" r="0.6" fill="white" fillOpacity="0.8" />
-      <rect x="22" y="1.5" width="56" height="20" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      <rect x="35" y="1.5" width="30" height="7" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      <circle cx="50" cy="14" r="0.6" fill="white" fillOpacity="0.8" />
-      <path d="M 40 21.5 A 9 9 0 0 0 60 21.5" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      <rect x="22" y="128.5" width="56" height="20" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      <rect x="35" y="141.5" width="30" height="7" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      <circle cx="50" cy="136" r="0.6" fill="white" fillOpacity="0.8" />
-      <path d="M 40 128.5 A 9 9 0 0 1 60 128.5" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      {[[1.5,1.5],[98.5,1.5],[1.5,148.5],[98.5,148.5]].map(([cx,cy],i)=>(
-        <circle key={i} cx={cx} cy={cy} r="1.5" fill="none" stroke="white" strokeOpacity="0.9" strokeWidth="0.5" />
-      ))}
+      <g stroke="white" strokeOpacity="0.82" strokeWidth="0.55" fill="none" strokeLinejoin="round">
+        <rect x="2.5" y="2.5" width="95" height="145" />
+        <line x1="2.5" y1="75" x2="97.5" y2="75" />
+        <circle cx="50" cy="75" r="9.5" />
+        <rect x="22" y="2.5" width="56" height="20" />
+        <rect x="35" y="2.5" width="30" height="7.5" />
+        <path d="M 40 22.5 A 9.5 9.5 0 0 0 60 22.5" />
+        <rect x="22" y="127.5" width="56" height="20" />
+        <rect x="35" y="140" width="30" height="7.5" />
+        <path d="M 40 127.5 A 9.5 9.5 0 0 1 60 127.5" />
+        {[[2.5,2.5],[97.5,2.5],[2.5,147.5],[97.5,147.5]].map(([cx,cy],i)=>(
+          <circle key={i} cx={cx} cy={cy} r="2" />
+        ))}
+      </g>
+      <g fill="white" fillOpacity="0.85">
+        <circle cx="50" cy="75" r="0.8" />
+        <circle cx="50" cy="15" r="0.8" />
+        <circle cx="50" cy="135" r="0.8" />
+      </g>
     </svg>
   );
 }
