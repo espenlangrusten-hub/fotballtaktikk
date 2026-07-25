@@ -403,17 +403,48 @@ function parseRosterLine(line) {
   if (!name || !/[a-zæøåA-ZÆØÅ]/.test(name)) return null;
 
   // drop header rows like "Navn", "Nr Navn Posisjon", "Fornavn Etternavn"
-  const HEADER_WORD = /^(navn|name|spiller|player|nr|no|nummer|number|draktnr|draktnummer|posisjon|position|pos|lag|team|klubb|club|sum|total|fornavn|etternavn)$/i;
+  const HEADER_WORD = /^(navn|name|spiller|player|nr|no|nummer|number|draktnr|draktnummer|posisjon|position|pos|lag|team|klubb|club|sum|total|fornavn|etternavn|spilt|vunnet|tapt|uavgjort|poeng|points?|mål|diff|differanse)$/i;
   if (name.split(/\s+/).every(w => HEADER_WORD.test(w))) return null;
 
   return { name, number, positions: position ? [position] : [] };
 }
 
+// Chrome/UI text that comes along when a whole tournament page is copied
+const UI_NOISE = /^(hjem|home|kamper|matches?|kampprogram|tabell|table|resultater?|results?|stilling|standings?|spillere|players|tropp|squad|lagoppstilling|lineup|lag|teams?|klubb|club|logg\s?inn|login|logg\s?ut|meny|menu|søk|search|del|share|tilbake|back|neste|next|forrige|previous|vis alle|se alle|info|kontakt|contact|om oss|about|cookies?|personvern|privacy|vilkår|terms|puljespill|sluttspill|gruppe|pulje|klasse|class|avdeling|arena|bane|dommer|referee|kampnr|kampnummer|program|statistikk|statistics|mål|goals?|kort|cards?|gult?|rødt?|yellow|red|poeng|points?|spilt|vunnet|uavgjort|tapt|differanse|sortert|oppdatert|annonse|reklame)$/i;
+
+function looksLikeNoise(line) {
+  const t = line.trim();
+  if (!t) return true;
+  if (t.length > 70) return true;                                  // prose or nav blob
+  if (/^https?:\/\//i.test(t) || /^www\./i.test(t)) return true;   // url
+  if (/^\d{1,2}[:.]\d{2}\b/.test(t)) return true;                  // 14:30
+  if (/^\d{1,2}[./-]\d{1,2}([./-]\d{2,4})?$/.test(t)) return true; // 28.07 / 28.07.2026
+  if (/^\d+\s*[-–—]\s*\d+$/.test(t)) return true;                  // 2 - 1
+  if (/^\d+$/.test(t)) return true;                                // lone number
+  if (/^[^a-zæøåA-ZÆØÅ]+$/.test(t)) return true;                   // no letters at all
+  if (/[©®]|\(c\)\s*\d{4}/i.test(t)) return true;                  // copyright line
+  if (/[:：]/.test(t)) return true;                                // "Klasse: Gutter 14" — names have no colon
+  if (/^(pulje|gruppe|klasse|avdeling|nivå|runde|semifinale|finale|kvartfinale)\b/i.test(t)) return true;
+  if (UI_NOISE.test(t.replace(/[:：]\s*$/, ""))) return true;
+  if (/\s[-–—]\s/.test(t) && /\d+\s*[-–—]\s*\d+/.test(t)) return true; // "Lag A 2 - 1 Lag B"
+  return false;
+}
+
+// Where a squad section starts, when a full page was pasted
+const SQUAD_HEADING = /^(spillere|spillerliste|tropp|troppen|lagoppstilling|players|player list|squad|roster)\b[:：]?$/i;
+
 function parseRosterText(text) {
+  let lines = (text || "").split(/\r?\n/).map(l => l.trim());
+
+  // If a squad heading is present, only look at what follows it
+  const start = lines.findIndex(l => SQUAD_HEADING.test(l));
+  if (start !== -1) lines = lines.slice(start + 1);
+
   const out = [];
   const seen = new Set();
-  for (const raw of (text || "").split(/\r?\n/)) {
-    const p = parseRosterLine(raw.trim());
+  for (const raw of lines) {
+    if (looksLikeNoise(raw)) continue;
+    const p = parseRosterLine(raw);
     if (!p) continue;
     const key = p.name.toLowerCase();
     if (seen.has(key)) continue;
@@ -1575,12 +1606,21 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
 
 function ImportPlayersModal({ team, onImport, onClose }) {
   const [text, setText] = useState("");
+  const [excluded, setExcluded] = useState(() => new Set());
   const parsed = useMemo(() => parseRosterText(text), [text]);
 
   const existing = new Set(team.players.map(p => p.name.toLowerCase()));
-  const fresh = parsed.filter(p => !existing.has(p.name.toLowerCase()));
-  const dupes = parsed.length - fresh.length;
+  const candidates = parsed.filter(p => !existing.has(p.name.toLowerCase()));
+  const fresh = candidates.filter(p => !excluded.has(p.name.toLowerCase()));
+  const dupes = parsed.length - candidates.length;
   const teamLabel = `${team.name}${team.variant ? ` ${team.variant}` : ""} (årgang ${team.ageYear})`;
+
+  const toggle = (name) => setExcluded(prev => {
+    const next = new Set(prev);
+    const k = name.toLowerCase();
+    if (next.has(k)) next.delete(k); else next.add(k);
+    return next;
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center"
@@ -1611,23 +1651,27 @@ function ImportPlayersModal({ team, onImport, onClose }) {
             <div className="text-sm font-semibold" style={{ color: "#bef264" }}>
               Fant {fresh.length} {fresh.length === 1 ? "spiller" : "spillere"} for {teamLabel} — vil du hente inn disse?
             </div>
-            {dupes > 0 && (
-              <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>
-                {dupes} {dupes === 1 ? "spiller" : "spillere"} finnes allerede og hoppes over.
-              </div>
-            )}
+            <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+              {dupes > 0 && <>{dupes} {dupes === 1 ? "spiller" : "spillere"} finnes allerede og hoppes over. </>}
+              Trykk på en linje for å utelate den.
+            </div>
             <div className="space-y-1 max-h-52 overflow-y-auto scrollbar-thin">
-              {fresh.map((p, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs">
-                  <span className="font-mono" style={{ color: "rgba(255,255,255,0.4)", minWidth: 20 }}>
-                    {p.number ?? "—"}
-                  </span>
-                  <span className="text-white flex-1 truncate">{p.name}</span>
-                  <span style={{ color: p.positions[0] ? POSITION_BY_CODE[p.positions[0]]?.color : "rgba(255,255,255,0.25)", fontWeight: 700 }}>
-                    {p.positions[0] || "?"}
-                  </span>
-                </div>
-              ))}
+              {candidates.map((p, i) => {
+                const off = excluded.has(p.name.toLowerCase());
+                return (
+                  <button key={i} onClick={() => toggle(p.name)}
+                    className="w-full flex items-center gap-2 text-xs px-1 py-0.5 rounded"
+                    style={{ opacity: off ? 0.35 : 1, textDecoration: off ? "line-through" : "none" }}>
+                    <span className="font-mono" style={{ color: "rgba(255,255,255,0.4)", minWidth: 20 }}>
+                      {p.number ?? "—"}
+                    </span>
+                    <span className="text-white flex-1 truncate text-left">{p.name}</span>
+                    <span style={{ color: p.positions[0] ? POSITION_BY_CODE[p.positions[0]]?.color : "rgba(255,255,255,0.25)", fontWeight: 700 }}>
+                      {p.positions[0] || "?"}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
