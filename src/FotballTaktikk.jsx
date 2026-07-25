@@ -38,6 +38,11 @@ const GlobalStyles = () => (
     .scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(132, 204, 22, 0.3); border-radius: 3px; }
     .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
     .no-select { user-select: none; -webkit-user-select: none; touch-action: none; }
+    /* Overlays: iOS Safari sizes fixed elements against the layout viewport,
+       so lean on dvh and keep sheets clear of the home indicator. */
+    .overlay-fill { height: 100vh; height: 100dvh; }
+    .sheet-safe { padding-bottom: calc(1.75rem + env(safe-area-inset-bottom, 0px)); }
+    .sheet-max { max-height: 88vh; max-height: 88dvh; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .anim-in { animation: fadeIn 0.35s ease-out both; }
     @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
@@ -547,15 +552,22 @@ function Field({ icon, label, children }) {
 function Modal({ title, onClose, children, size = "md" }) {
   const sizeCls = size === "lg" ? "max-w-2xl" : size === "xl" ? "max-w-4xl" : "max-w-lg";
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm anim-in" onClick={onClose}>
-      <div className={`bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full ${sizeCls} max-h-[90vh] flex flex-col`} onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+    <div
+      className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end sm:items-center justify-center sm:p-4 bg-slate-950/85 backdrop-blur-sm anim-in"
+      onClick={onClose}
+    >
+      <div
+        className={`bg-slate-900 border border-slate-800 rounded-t-2xl sm:rounded-2xl shadow-2xl w-full ${sizeCls} sheet-max flex flex-col`}
+        onClick={e => e.stopPropagation()}
+        style={{ overscrollBehavior: "contain" }}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800 flex-shrink-0">
           <h3 className="font-display text-xl text-white">{title}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-5 overflow-y-auto scrollbar-thin">{children}</div>
+        <div className="px-5 pt-5 pb-5 sm:pb-5 sheet-safe sm:!pb-5 overflow-y-auto scrollbar-thin">{children}</div>
       </div>
     </div>
   );
@@ -833,10 +845,10 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
       )}
 
       {teamToDelete && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center"
+        <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={() => setDeleteTeamId(null)}>
-          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3"
+          <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-3"
             style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
             onClick={e => e.stopPropagation()}>
             <div className="font-bold text-white text-sm">Slett lag</div>
@@ -1502,10 +1514,10 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     {/* ── SAVE DIALOG ── */}
 
     {showSaveDialog && (
-      <div className="fixed inset-0 z-50 flex items-end justify-center"
+      <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
         style={{ background: "rgba(0,0,0,0.55)" }}
         onClick={() => setShowSaveDialog(false)}>
-        <div className="w-full rounded-t-2xl px-4 pt-4 pb-6 space-y-3"
+        <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-3"
           style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
           onClick={e => e.stopPropagation()}>
           <div className="font-bold text-white text-sm">Lagre taktikk</div>
@@ -1575,10 +1587,10 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     )}
 
     {showDeleteDialog && (
-      <div className="fixed inset-0 z-50 flex items-end justify-center"
+      <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
         style={{ background: "rgba(0,0,0,0.55)" }}
         onClick={() => setShowDeleteDialog(false)}>
-        <div className="w-full rounded-t-2xl px-4 pt-4 pb-6 space-y-3"
+        <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-3"
           style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
           onClick={e => e.stopPropagation()}>
           <div className="font-bold text-white text-sm">Slett taktikk</div>
@@ -1623,10 +1635,10 @@ function ImportPlayersModal({ team, onImport, onClose }) {
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center"
+    <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
       style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
-      <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3 overflow-y-auto scrollbar-thin"
-        style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480, maxHeight: "88vh" }}
+      <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-3 overflow-y-auto scrollbar-thin sheet-max"
+        style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480, overscrollBehavior: "contain" }}
         onClick={e => e.stopPropagation()}>
 
         <div className="font-bold text-white text-sm">Importer spillere</div>
@@ -2567,10 +2579,10 @@ function TacticsView({ team, user, db, setDB }) {
 
       {/* ===== SAVE DIALOG ===== */}
       {showSaveDialog && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center"
+        <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={() => setShowSaveDialog(false)}>
-          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3"
+          <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-3"
             style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
             onClick={e => e.stopPropagation()}>
             <div className="font-bold text-white text-sm">Lagre taktikk</div>
@@ -2641,10 +2653,10 @@ function TacticsView({ team, user, db, setDB }) {
 
       {/* ===== DELETE CONFIRM DIALOG ===== */}
       {showDeleteDialog && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center"
+        <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={() => setShowDeleteDialog(false)}>
-          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3"
+          <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-3"
             style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
             onClick={e => e.stopPropagation()}>
             <div className="font-bold text-white text-sm">Slett taktikk</div>
@@ -2814,10 +2826,10 @@ function TeamMatches({ team, user, db, setDB }) {
 
       {/* New match dialog */}
       {showNew && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center"
+        <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={() => setShowNew(false)}>
-          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-4"
+          <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-4"
             style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
             onClick={e => e.stopPropagation()}>
             <div className="font-bold text-white">Ny kamp</div>
@@ -2880,10 +2892,10 @@ function TeamMatches({ team, user, db, setDB }) {
 
       {/* Delete confirm */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center"
+        <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
           style={{ background: "rgba(0,0,0,0.6)" }}
           onClick={() => setDeleteConfirm(null)}>
-          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3"
+          <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-3"
             style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
             onClick={e => e.stopPropagation()}>
             <div className="font-bold text-white">Slett kamp</div>
@@ -3272,10 +3284,10 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
 
         {/* Goal modal */}
         {showGoalModal && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center"
+          <div className="fixed inset-x-0 top-0 overlay-fill z-50 flex items-end justify-center"
             style={{ background: "rgba(0,0,0,0.6)" }}
             onClick={() => { setShowGoalModal(false); setGoalScorer(""); setGoalAssist(""); }}>
-            <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-4"
+            <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe space-y-4"
               style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
               onClick={e => e.stopPropagation()}>
               <div className="font-bold text-white">⚽ Mål — {displayMinute}&apos;</div>
@@ -3341,7 +3353,7 @@ function MatchView({ match: initialMatch, team, user, db, setDB, onBack }) {
         {showPostMatch && (
           <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: "rgba(0,0,0,0.8)" }}>
             <div className="min-h-screen flex items-end justify-center">
-              <div className="w-full rounded-t-2xl px-4 pt-4 pb-8"
+              <div className="w-full rounded-t-2xl px-4 pt-4 sheet-safe"
                 style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}>
                 <div className="font-bold text-white mb-4">Kampvurdering</div>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
