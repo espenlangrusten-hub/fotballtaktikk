@@ -617,9 +617,21 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
   const [showNew, setShowNew] = useState(false);
   const [name, setName] = useState("");
   const [year, setYear] = useState(2012);
+  const [deleteTeamId, setDeleteTeamId] = useState(null);
 
   const teams = visibleTeams(user, db.teams);
   const isAdminUser = isAdmin(user);
+  const teamToDelete = db.teams.find(t => t.id === deleteTeamId);
+
+  const confirmDeleteTeam = async () => {
+    if (!deleteTeamId) return;
+    const nextUsers = db.users.map(u => ({
+      ...u, teamAccess: (u.teamAccess || []).filter(a => a.teamId !== deleteTeamId),
+    }));
+    const next = { ...db, teams: db.teams.filter(t => t.id !== deleteTeamId), users: nextUsers };
+    setDB(next); await storage.set(DB_KEY, next);
+    setDeleteTeamId(null);
+  };
 
   const createTeam = async () => {
     if (!name.trim()) return;
@@ -679,7 +691,9 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
               if (av !== bv) return av - bv;
               return (a.variant || "").localeCompare(b.variant || "", "nb");
             }).map(team => (
-              <TeamCard key={team.id} team={team} user={user} onClick={() => onOpenTeam(team.id)} />
+              <TeamCard key={team.id} team={team} user={user}
+                onClick={() => onOpenTeam(team.id)}
+                onDelete={isAdminUser ? () => setDeleteTeamId(team.id) : undefined} />
             ))}
           </div>
         </>
@@ -705,23 +719,67 @@ function ClubView({ user, db, setDB, onOpenTeam }) {
           </div>
         </Modal>
       )}
+
+      {teamToDelete && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setDeleteTeamId(null)}>
+          <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3"
+            style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480 }}
+            onClick={e => e.stopPropagation()}>
+            <div className="font-bold text-white text-sm">Slett lag</div>
+            <div className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+              Er du sikker på at du vil slette{" "}
+              <span className="text-white font-semibold">
+                «{teamToDelete.name}{teamToDelete.variant ? ` ${teamToDelete.variant}` : ""}»
+              </span>? Alle {teamToDelete.players.length} spillere, taktikker og kamper forsvinner. Dette kan ikke angres.
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteTeamId(null)}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+                Avbryt
+              </button>
+              <button onClick={confirmDeleteTeam}
+                className="flex-1 py-2 rounded-lg text-sm font-bold"
+                style={{ background: "rgba(239,68,68,0.9)", color: "#fff" }}>
+                Slett lag
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </div>
   );
 }
 
 
-function TeamCard({ team, user, onClick }) {
+function TeamCard({ team, user, onClick, onDelete }) {
   const write = canWrite(user, team.id);
   return (
-    <button onClick={onClick}
-      className="group text-left rounded-2xl p-5 transition-all"
+    <div onClick={onClick}
+      role="button" tabIndex={0}
+      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
+      className="group text-left rounded-2xl p-5 transition-all cursor-pointer"
       style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)" }}
       onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; e.currentTarget.style.borderColor = "rgba(132,204,22,0.5)"; }}
       onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"; }}
     >
       <div className="flex items-start justify-between mb-3">
         <PermBadge permission={write ? "write" : "read"} />
+        {onDelete && (
+          <button
+            onClick={e => { e.stopPropagation(); onDelete(); }}
+            title="Slett lag"
+            className="p-1.5 rounded-lg"
+            style={{ color: "rgba(255,255,255,0.35)" }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(239,68,68,0.15)"; e.currentTarget.style.color = "#f87171"; }}
+            onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.35)"; }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
       <h3 className="font-display text-xl" style={{ color: "#fff" }}>
         {team.name}{team.variant ? ` ${team.variant}` : ""}
@@ -733,7 +791,7 @@ function TeamCard({ team, user, onClick }) {
           <div className="font-display text-lg" style={{ color: "#fff" }}>{team.players.length}</div>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
