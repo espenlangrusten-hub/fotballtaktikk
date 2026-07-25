@@ -342,6 +342,87 @@ const shortName = (name) => {
   return `${parts[0]} ${parts[parts.length - 1][0]}.`;
 };
 
+// ---------- ROSTER IMPORT (paste from Norway Cup / Profixio / Excel) ----------
+const IMPORT_POS_ALIASES = {
+  k: "K", gk: "K", keeper: "K", mv: "K", "målvakt": "K", malvakt: "K",
+  cb: "CB", midtstopper: "CB", stopper: "CB", midtforsvar: "CB", dc: "CB",
+  lb: "LB", venstreback: "LB", vb: "LB", dl: "LB",
+  rb: "RB", "høyreback": "RB", hoyreback: "RB", hb: "RB", dr: "RB",
+  dm: "DM", defensiv: "DM", "6er": "DM",
+  cm: "CM", midtbane: "CM", sentral: "CM", mc: "CM", midt: "CM",
+  am: "AM", offensiv: "AM", "10er": "AM",
+  lm: "LM", venstremidt: "LM", ml: "LM",
+  rm: "RM", "høyremidt": "RM", hoyremidt: "RM", mr: "RM",
+  lw: "LW", venstreving: "LW", vk: "LW", vinstreving: "LW",
+  rw: "RW", "høyreving": "RW", hoyreving: "RW", hk: "RW",
+  st: "ST", spiss: "ST", angriper: "ST", angrep: "ST", fw: "ST",
+};
+
+const normKey = (s) => s.toLowerCase().replace(/[^a-zæøå0-9]/g, "");
+
+function parseRosterLine(line) {
+  let fields = /[\t;,]/.test(line) ? line.split(/[\t;,]+/) : [line];
+  fields = fields.map(f => f.trim()).filter(Boolean);
+  if (!fields.length) return null;
+
+  let number = null, position = null;
+  const nameParts = [];
+
+  for (const f of fields) {
+    if (number === null && /^#?\d{1,2}\.?$/.test(f)) {
+      number = parseInt(f.replace(/\D/g, ""), 10);
+      continue;
+    }
+    if (!position && IMPORT_POS_ALIASES[normKey(f)]) {
+      position = IMPORT_POS_ALIASES[normKey(f)];
+      continue;
+    }
+    nameParts.push(f);
+  }
+
+  let name = nameParts.join(" ").trim();
+
+  // "7 Ola Nordmann" / "7. Ola Nordmann" / "Ola Nordmann 7"
+  if (number === null) {
+    const lead = name.match(/^#?(\d{1,2})[.)\s]+(.+)$/);
+    const trail = name.match(/^(.+?)[\s]+#?(\d{1,2})$/);
+    if (lead) { number = parseInt(lead[1], 10); name = lead[2]; }
+    else if (trail) { number = parseInt(trail[2], 10); name = trail[1]; }
+  }
+
+  // trailing position word: "Ola Nordmann Keeper"
+  if (!position) {
+    const m = name.match(/^(.+?)[\s-]+([A-Za-zÆØÅæøå0-9]+)$/);
+    if (m && IMPORT_POS_ALIASES[normKey(m[2])]) {
+      position = IMPORT_POS_ALIASES[normKey(m[2])];
+      name = m[1];
+    }
+  }
+
+  name = name.replace(/\s+/g, " ").trim();
+  if (!name || !/[a-zæøåA-ZÆØÅ]/.test(name)) return null;
+
+  // drop header rows like "Navn", "Nr Navn Posisjon", "Fornavn Etternavn"
+  const HEADER_WORD = /^(navn|name|spiller|player|nr|no|nummer|number|draktnr|draktnummer|posisjon|position|pos|lag|team|klubb|club|sum|total|fornavn|etternavn)$/i;
+  if (name.split(/\s+/).every(w => HEADER_WORD.test(w))) return null;
+
+  return { name, number, positions: position ? [position] : [] };
+}
+
+function parseRosterText(text) {
+  const out = [];
+  const seen = new Set();
+  for (const raw of (text || "").split(/\r?\n/)) {
+    const p = parseRosterLine(raw.trim());
+    if (!p) continue;
+    const key = p.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(p);
+  }
+  return out;
+}
+
 const sortPlayers = (players) => [...players].sort((a, b) => {
   const ga = GROUP_ORDER[POSITION_BY_CODE[a.positions?.[0]]?.group] ?? 9;
   const gb = GROUP_ORDER[POSITION_BY_CODE[b.positions?.[0]]?.group] ?? 9;
@@ -1492,8 +1573,91 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   );
 }
 
+function ImportPlayersModal({ team, onImport, onClose }) {
+  const [text, setText] = useState("");
+  const parsed = useMemo(() => parseRosterText(text), [text]);
+
+  const existing = new Set(team.players.map(p => p.name.toLowerCase()));
+  const fresh = parsed.filter(p => !existing.has(p.name.toLowerCase()));
+  const dupes = parsed.length - fresh.length;
+  const teamLabel = `${team.name}${team.variant ? ` ${team.variant}` : ""} (årgang ${team.ageYear})`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center"
+      style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
+      <div className="w-full rounded-t-2xl px-4 pt-4 pb-8 space-y-3 overflow-y-auto scrollbar-thin"
+        style={{ background: "#0d2340", border: "1px solid rgba(255,255,255,0.12)", maxWidth: 480, maxHeight: "88vh" }}
+        onClick={e => e.stopPropagation()}>
+
+        <div className="font-bold text-white text-sm">Importer spillere</div>
+        <div className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.55)" }}>
+          Lim inn spillerlista fra Norway Cup, Profixio eller Excel. Én spiller per linje —
+          nummer og posisjon plukkes opp automatisk hvis de står der.
+        </div>
+
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          rows={7}
+          autoFocus
+          placeholder={"7 Ola Nordmann ST\n1 Jonas Berg Keeper\nErik Solberg"}
+          className="w-full rounded-lg px-3 py-2 text-white outline-none"
+          style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", fontSize: 16, resize: "vertical" }}
+        />
+
+        {parsed.length > 0 && (
+          <div className="rounded-lg p-3 space-y-2"
+            style={{ background: "rgba(132,204,22,0.08)", border: "1px solid rgba(132,204,22,0.3)" }}>
+            <div className="text-sm font-semibold" style={{ color: "#bef264" }}>
+              Fant {fresh.length} {fresh.length === 1 ? "spiller" : "spillere"} for {teamLabel} — vil du hente inn disse?
+            </div>
+            {dupes > 0 && (
+              <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.5)" }}>
+                {dupes} {dupes === 1 ? "spiller" : "spillere"} finnes allerede og hoppes over.
+              </div>
+            )}
+            <div className="space-y-1 max-h-52 overflow-y-auto scrollbar-thin">
+              {fresh.map((p, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="font-mono" style={{ color: "rgba(255,255,255,0.4)", minWidth: 20 }}>
+                    {p.number ?? "—"}
+                  </span>
+                  <span className="text-white flex-1 truncate">{p.name}</span>
+                  <span style={{ color: p.positions[0] ? POSITION_BY_CODE[p.positions[0]]?.color : "rgba(255,255,255,0.25)", fontWeight: 700 }}>
+                    {p.positions[0] || "?"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {text.trim() && parsed.length === 0 && (
+          <div className="text-xs rounded-lg p-3" style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#fca5a5" }}>
+            Fant ingen spillere i teksten. Sjekk at det er én spiller per linje.
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-2 rounded-lg text-sm font-semibold"
+            style={{ background: "rgba(255,255,255,0.07)", color: "rgba(255,255,255,0.55)" }}>
+            Avbryt
+          </button>
+          <button onClick={() => onImport(fresh)}
+            disabled={fresh.length === 0}
+            className="flex-1 py-2 rounded-lg text-sm font-bold bg-lime-400 text-slate-950 disabled:opacity-40">
+            Hent inn {fresh.length > 0 ? fresh.length : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TeamPlayers({ team, user, db, setDB }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const write = canWrite(user, team.id);
 
   const update = async (mut) => {
@@ -1508,6 +1672,14 @@ function TeamPlayers({ team, user, db, setDB }) {
   const addPlayer = async (player) => {
     await update(t => ({ ...t, players: [...t.players, { ...player, id: uid() }] }));
     setShowAdd(false);
+  };
+  const importPlayers = async (list) => {
+    if (!list.length) return;
+    await update(t => ({
+      ...t,
+      players: [...t.players, ...list.map(p => ({ ...p, id: uid() }))],
+    }));
+    setShowImport(false);
   };
   const editPlayer = async (pid, patch) => {
     await update(t => ({ ...t, players: t.players.map(p => p.id === pid ? { ...p, ...patch } : p) }));
@@ -1537,7 +1709,12 @@ function TeamPlayers({ team, user, db, setDB }) {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
       {write && (
-        <div className="flex justify-end mb-4">
+        <div className="flex justify-end gap-2 mb-4">
+          <button onClick={() => setShowImport(true)}
+            className="px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2"
+            style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}>
+            <Users className="w-4 h-4" /> Importer
+          </button>
           <button onClick={() => setShowAdd(true)}
             className="px-4 py-2.5 rounded-xl bg-lime-400 hover:bg-lime-300 text-slate-950 font-semibold text-sm flex items-center gap-2 shadow-lg shadow-lime-400/20">
             <Plus className="w-4 h-4" /> Ny spiller
@@ -1552,9 +1729,16 @@ function TeamPlayers({ team, user, db, setDB }) {
           {write && (
             <>
               <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.4)" }}>Legg til spillere for å bygge laget</p>
-              <button onClick={() => setShowAdd(true)} className="px-5 py-2.5 rounded-xl bg-lime-400 text-slate-950 font-semibold text-sm inline-flex items-center gap-2">
-                <Plus className="w-4 h-4" /> Legg til spiller
-              </button>
+              <div className="flex justify-center gap-2">
+                <button onClick={() => setShowImport(true)}
+                  className="px-5 py-2.5 rounded-xl font-semibold text-sm inline-flex items-center gap-2"
+                  style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.85)" }}>
+                  <Users className="w-4 h-4" /> Importer liste
+                </button>
+                <button onClick={() => setShowAdd(true)} className="px-5 py-2.5 rounded-xl bg-lime-400 text-slate-950 font-semibold text-sm inline-flex items-center gap-2">
+                  <Plus className="w-4 h-4" /> Legg til spiller
+                </button>
+              </div>
             </>
           )}
         </div>
@@ -1585,6 +1769,10 @@ function TeamPlayers({ team, user, db, setDB }) {
 
       {showAdd && (
         <PlayerEditor onSave={addPlayer} onClose={() => setShowAdd(false)} title="Ny spiller" />
+      )}
+
+      {showImport && (
+        <ImportPlayersModal team={team} onImport={importPlayers} onClose={() => setShowImport(false)} />
       )}
     </div>
   );
