@@ -476,32 +476,54 @@ const sortTeamNames = (a, b) => {
 };
 
 // ---------- STORAGE ----------
+// App subscribes so a failed cloud write becomes visible instead of silent.
+let syncListener = null;
+const onSyncStatus = (fn) => { syncListener = fn; };
+
 const storage = {
-  async get(key) {
+  // { ok: true, value } — value is null only when the cloud genuinely holds no row.
+  // { ok: false, error } — the read failed; the caller must NOT treat this as empty.
+  async load(key) {
+    let cloudError = null;
     try {
-      const { data, error } = await supabase
+      const query = supabase
         .from('app_data')
         .select('value')
         .eq('key', key)
         .maybeSingle();
+      // Don't let a hanging request leave the app on the splash screen forever.
+      const { data, error } = await Promise.race([
+        query,
+        new Promise((_, rej) => setTimeout(() => rej(new Error("Tidsavbrudd mot databasen")), 15000)),
+      ]);
       if (error) throw error;
-      if (data) return data.value;
-    } catch {}
-    // fallback: localStorage
+      return { ok: true, value: data ? data.value : null, source: "cloud" };
+    } catch (e) {
+      cloudError = e?.message || String(e);
+    }
+    // Cloud unreachable: use the offline cache if we have one, but never
+    // report "empty" — that would overwrite everyone else's data.
     try {
       const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+      if (raw) return { ok: true, value: JSON.parse(raw), source: "local" };
+    } catch {}
+    return { ok: false, error: cloudError };
   },
   async set(key, value) {
+    let ok = true, err = null;
     try {
       const { error } = await supabase
         .from('app_data')
         .upsert({ key, value });
       if (error) throw error;
-    } catch {}
+    } catch (e) {
+      ok = false;
+      err = e?.message || String(e);
+    }
     // mirror to localStorage as offline cache
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+    syncListener?.(ok, err);
+    return ok;
   },
 };
 
@@ -3999,13 +4021,28 @@ function AdminClub({ db, setDB }) {
 // ==================================================================
 export default function App() {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [syncError, setSyncError] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [db, setDB] = useState(defaultDB());
   const [view, setView] = useState({ name: "club" });
 
   useEffect(() => {
+    onSyncStatus((ok, err) => setSyncError(ok ? null : err));
+    return () => onSyncStatus(null);
+  }, []);
+
+  useEffect(() => {
     (async () => {
-      let stored = await storage.get(DB_KEY);
+      const res = await storage.load(DB_KEY);
+      if (!res.ok) {
+        // Cloud read failed and there is no local cache. Seeding a fresh DB
+        // here would overwrite the shared data for everyone — so stop.
+        setLoadError(res.error || "Ukjent feil");
+        setLoading(false);
+        return;
+      }
+      let stored = res.value;
       if (!stored) {
         stored = defaultDB();
         await storage.set(DB_KEY, stored);
@@ -4029,6 +4066,30 @@ export default function App() {
       <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <GlobalStyles />
         <div className="text-lime-400 font-display tracking-widest">LASTER...</div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6">
+        <GlobalStyles />
+        <div className="max-w-md w-full rounded-2xl p-6 space-y-4"
+          style={{ background: "#0d2340", border: "1px solid rgba(239,68,68,0.4)" }}>
+          <h2 className="font-display text-2xl text-white">Får ikke kontakt med databasen</h2>
+          <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+            Appen lastet ikke inn dataene, og starter ikke på nytt med tomt innhold — det ville
+            slettet laget for alle andre. Sjekk nettforbindelsen og prøv igjen.
+          </p>
+          <div className="text-[11px] font-mono rounded-lg p-2 break-words"
+            style={{ background: "rgba(0,0,0,0.35)", color: "#fca5a5" }}>
+            {loadError}
+          </div>
+          <button onClick={() => window.location.reload()}
+            className="w-full py-2.5 rounded-xl bg-lime-400 text-slate-950 font-bold text-sm">
+            Prøv igjen
+          </button>
+        </div>
       </div>
     );
   }
@@ -4075,6 +4136,16 @@ export default function App() {
         onAdmin={() => setView(v => v.name === "admin" ? { name: "club" } : { name: "admin" })}
         onLogout={() => { setCurrentUserId(null); setView({ name: "club" }); }}
       />
+
+      {syncError && (
+        <div className="px-4 py-2 text-xs flex items-start gap-2"
+          style={{ background: "rgba(239,68,68,0.15)", borderBottom: "1px solid rgba(239,68,68,0.35)", color: "#fca5a5" }}>
+          <span className="font-bold flex-shrink-0">Ikke lagret i skyen:</span>
+          <span className="flex-1">
+            Endringene ligger bare på denne enheten, så andre ser dem ikke. Sjekk nettforbindelsen.
+          </span>
+        </div>
+      )}
 
       <div className="anim-in">
         {view.name === "club" && (
