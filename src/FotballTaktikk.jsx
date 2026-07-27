@@ -21,7 +21,17 @@ const GlobalStyles = () => (
     .font-display { font-family: 'Oswald', sans-serif; letter-spacing: 0.02em; }
     .font-body { font-family: 'Manrope', sans-serif; }
     .font-mono { font-family: 'JetBrains Mono', monospace; }
-    body { font-family: 'Manrope', sans-serif; background: #020617; }
+    /* Lock the page horizontally: only opted-in strips scroll sideways,
+       and overscroll must never expose the white page behind the app. */
+    html, body {
+      background: #020617;
+      overflow-x: hidden;
+      overscroll-behavior-x: none;
+      max-width: 100%;
+    }
+    body { font-family: 'Manrope', sans-serif; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
     .pitch-grad {
       background:
         repeating-radial-gradient(circle at 50% 50%,
@@ -1242,12 +1252,12 @@ function TeamView({ team, user, db, setDB, onBack }) {
             </div>
           ) : null}
 
-          {/* Tab bar + edit/delete actions */}
-          <div className="flex items-center justify-between">
-            <div className="flex">
+          {/* Tab bar + edit/delete actions — only the tab strip scrolls */}
+          <div className="flex items-center justify-between gap-1 min-w-0">
+            <div className="flex overflow-x-auto no-scrollbar min-w-0">
               {[["forside","Forside"],["oversikt","Oversikt"],["spillere","Spillere"],["taktikk","Taktikk"],["kamp","Kamp"]].map(([key,label]) => (
                 <button key={key} onClick={() => setTab(key)}
-                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${
+                  className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors flex-shrink-0 whitespace-nowrap ${
                     tab === key
                       ? "border-lime-400 text-lime-400"
                       : "border-transparent text-slate-400 hover:text-slate-200"
@@ -1257,7 +1267,8 @@ function TeamView({ team, user, db, setDB, onBack }) {
               ))}
             </div>
             {!editingName && (write || adminUser) && (
-              <div className="flex items-center gap-1 pr-1">
+              <div className="flex items-center gap-1 pl-2 pr-1 flex-shrink-0"
+                style={{ borderLeft: "1px solid rgba(255,255,255,0.08)" }}>
                 {write && (
                   <button onClick={() => setEditingName(true)}
                     className="p-2 rounded-lg hover:bg-slate-800 text-slate-500 hover:text-slate-300"
