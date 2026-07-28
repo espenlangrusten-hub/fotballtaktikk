@@ -1031,6 +1031,43 @@ function TeamCard({ team, user, onClick, onDelete }) {
   );
 }
 
+// Saved-tactics submenu, shared by Oversikt and Taktikk so both pages
+// always show the same list and the same active tactic.
+function TacticStrip({ tactics, activeId, onSelect }) {
+  if (!tactics.length) return null;
+  return (
+    <div className="mb-3">
+      <div className="text-[10px] font-bold tracking-widest mb-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
+        LAGREDE TAKTIKKER
+      </div>
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {tactics.map(t => {
+          const pl = PRESS_LINES[t.notes?.pressLine || PRESS_NOTES[t.formation]?.line || "mid"];
+          const active = t.id === activeId;
+          return (
+            <button key={t.id} onClick={() => onSelect(t.id)}
+              className="flex-shrink-0 text-left rounded-lg px-3 py-1.5"
+              style={{
+                background: active ? "rgba(132,204,22,0.15)" : "rgba(255,255,255,0.05)",
+                border: `1px solid ${active ? "#84cc16" : "rgba(255,255,255,0.12)"}`,
+              }}>
+              <div className="flex items-center gap-1.5">
+                <span style={{ width: 6, height: 6, borderRadius: 3, background: pl?.color || "#64748b", flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 700, whiteSpace: "nowrap", color: active ? "#bef264" : "#fff" }}>
+                  {t.name}
+                </span>
+              </div>
+              <div style={{ fontSize: 9, whiteSpace: "nowrap", color: "rgba(255,255,255,0.4)", marginLeft: 12 }}>
+                {t.formation}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ---------- TEAM FRONT PAGE ----------
 function TeamHome({ team, onOpenTactic, onOpenPlayers }) {
   const players = sortPlayers(team.players || []);
@@ -1199,7 +1236,8 @@ function TeamHome({ team, onOpenTactic, onOpenPlayers }) {
 // ---------- TEAM VIEW (tabbed) ----------
 function TeamView({ team, user, db, setDB, onBack }) {
   const [tab, setTab] = useState("forside");
-  const [tacticToOpen, setTacticToOpen] = useState(null);
+  // Which saved tactic is active — shared by Oversikt and Taktikk
+  const [selectedTacticId, setSelectedTacticId] = useState(null);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(team.name);
   const [newVariant, setNewVariant] = useState(team.variant || "");
@@ -1293,15 +1331,18 @@ function TeamView({ team, user, db, setDB, onBack }) {
       {/* Tab content */}
       {tab === "forside" && (
         <TeamHome team={liveTeam}
-          onOpenTactic={(tid) => { setTacticToOpen(tid); setTab("taktikk"); }}
+          onOpenTactic={(tid) => { if (tid) setSelectedTacticId(tid); setTab("taktikk"); }}
           onOpenPlayers={() => setTab("spillere")} />
       )}
-      {tab === "oversikt" && <TeamOverview team={liveTeam} user={user} db={db} setDB={setDB} setTab={setTab} />}
+      {tab === "oversikt" && (
+        <TeamOverview team={liveTeam} user={user} db={db} setDB={setDB} setTab={setTab}
+          selectedTacticId={selectedTacticId} onSelectTactic={setSelectedTacticId} />
+      )}
       {tab === "spillere" && <TeamPlayers team={liveTeam} user={user} db={db} setDB={setDB} />}
       {tab === "taktikk" && (
         <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
-          <TacticsView key={tacticToOpen || "last"} team={liveTeam} user={user} db={db} setDB={setDB}
-            initialTacticId={tacticToOpen} />
+          <TacticsView team={liveTeam} user={user} db={db} setDB={setDB}
+            selectedTacticId={selectedTacticId} onSelectTactic={setSelectedTacticId} />
         </div>
       )}
       {tab === "kamp" && <TeamMatches team={liveTeam} user={user} db={db} setDB={setDB} />}
@@ -1309,7 +1350,7 @@ function TeamView({ team, user, db, setDB, onBack }) {
   );
 }
 
-function TeamOverview({ team, user, db, setDB, setTab }) {
+function TeamOverview({ team, user, db, setDB, setTab, selectedTacticId, onSelectTactic }) {
   const write = canWrite(user, team.id);
   const pitchRef = useRef(null);
   const selectedPlayerRef = useRef(null);
@@ -1336,12 +1377,16 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
   }, [team.players]);
 
   const [tactic, setTactic] = useState(() => {
+    const picked = selectedTacticId && savedTactics.find(t => t.id === selectedTacticId);
+    if (picked) return { ...picked };
     if (savedTactics.length) return { ...savedTactics[savedTactics.length - 1] };
     return autoAssign(buildFromFormation("4-4-2"));
   });
-  const [dropVal, setDropVal] = useState(() =>
-    savedTactics.length ? `tactic:${savedTactics[savedTactics.length - 1].id}` : `formation:4-4-2`
-  );
+  const [dropVal, setDropVal] = useState(() => {
+    const picked = selectedTacticId && savedTactics.find(t => t.id === selectedTacticId);
+    if (picked) return `tactic:${picked.id}`;
+    return savedTactics.length ? `tactic:${savedTactics[savedTactics.length - 1].id}` : `formation:4-4-2`;
+  });
   const [selectedPlayerId, setSelectedPlayerId] = useState(null);
   const [draggingSlot, setDraggingSlot] = useState(null);
   const [livePos, setLivePos] = useState(null);
@@ -1393,6 +1438,7 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     const next = { ...db, teams: db.teams.map(tm => tm.id === team.id ? { ...tm, tactics: newList } : tm) };
     setDB(next);
     storage.set(DB_KEY, next);
+    onSelectTactic?.(savedId);
     setShowSaveDialog(false);
     setSaveName("");
     setOverwriteId("");
@@ -1406,9 +1452,11 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     if (newList.length) {
       setTactic({ ...newList[newList.length - 1] });
       setDropVal(`tactic:${newList[newList.length - 1].id}`);
+      onSelectTactic?.(newList[newList.length - 1].id);
     } else {
       setTactic(autoAssign(buildFromFormation("4-4-2")));
       setDropVal("formation:4-4-2");
+      onSelectTactic?.(null);
     }
     setShowDeleteDialog(false);
   };
@@ -1434,12 +1482,27 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     if (val.startsWith("formation:")) {
       const key = val.slice(10);
       setTactic(autoAssign(buildFromFormation(key)));
+      onSelectTactic?.(null);
     } else {
       const id = val.slice(7);
       const found = (team.tactics || []).find(t => t.id === id);
-      if (found) setTactic({ ...found });
+      if (found) { setTactic({ ...found }); onSelectTactic?.(id); }
     }
   };
+
+  // Follow the tactic chosen on the other page (adjust-state-on-prop-change)
+  const [prevSelectedId, setPrevSelectedId] = useState(selectedTacticId);
+  if (selectedTacticId !== prevSelectedId) {
+    setPrevSelectedId(selectedTacticId);
+    if (selectedTacticId && selectedTacticId !== tactic.id) {
+      const found = (team.tactics || []).find(t => t.id === selectedTacticId);
+      if (found) {
+        setTactic({ ...found });
+        setDropVal(`tactic:${found.id}`);
+        setSelectedPlayerId(null);
+      }
+    }
+  }
 
   const pitchCoords = (clientX, clientY) => {
     const rect = pitchRef.current?.getBoundingClientRect();
@@ -1573,6 +1636,16 @@ function TeamOverview({ team, user, db, setDB, setTab }) {
     <>
     <div className="min-h-screen" style={{ background: "linear-gradient(155deg, #08111e 0%, #0d2340 45%, #08111e 100%)" }}>
       <div className="px-3 sm:px-5 pt-4 pb-8 max-w-2xl mx-auto">
+
+        <TacticStrip tactics={savedTactics} activeId={tactic.id}
+          onSelect={(id) => {
+            const found = savedTactics.find(t => t.id === id);
+            if (!found) return;
+            setTactic({ ...found });
+            setDropVal(`tactic:${id}`);
+            setSelectedPlayerId(null);
+            onSelectTactic?.(id);
+          }} />
 
         {/* ── DROPDOWN ── */}
         <div className="flex items-center gap-2 mb-4">
@@ -2228,7 +2301,7 @@ function PlayerEditor({ player, onSave, onClose, title }) {
 // ==================================================================
 // =============== TACTICS BOARD (always visible) ===================
 // ==================================================================
-function TacticsView({ team, user, db, setDB, initialTacticId }) {
+function TacticsView({ team, user, db, setDB, selectedTacticId, onSelectTactic }) {
   const write = canWrite(user, team.id);
 
   const makeFresh = (formationKey = "4-4-2") => ({
@@ -2239,11 +2312,11 @@ function TacticsView({ team, user, db, setDB, initialTacticId }) {
 
   const initial = useMemo(() => {
     const list = team.tactics || [];
-    const picked = initialTacticId && list.find(t => t.id === initialTacticId);
+    const picked = selectedTacticId && list.find(t => t.id === selectedTacticId);
     if (picked) return { ...picked, isNew: false };
     if (list.length) return { ...list[list.length - 1], isNew: false };
     return makeFresh("4-4-2");
-  }, [team.id, initialTacticId]);
+  }, [team.id]);
 
   const [tactic, setTactic] = useState(initial);
   const [mode, setMode] = useState("move");
@@ -2475,8 +2548,19 @@ function TacticsView({ team, user, db, setDB, initialTacticId }) {
     const next = { ...db, teams: db.teams.map(t => t.id === team.id ? { ...t, tactics: newList } : t) };
     setDB(next); await storage.set(DB_KEY, next);
     setTactic(saved);
+    onSelectTactic?.(saved.id);
     setShowSaveDialog(false);
   };
+
+  // Follow the tactic chosen on the other page (adjust-state-on-prop-change)
+  const [prevSelectedId, setPrevSelectedId] = useState(selectedTacticId);
+  if (selectedTacticId !== prevSelectedId) {
+    setPrevSelectedId(selectedTacticId);
+    if (selectedTacticId && selectedTacticId !== tactic.id) {
+      const found = (team.tactics || []).find(t => t.id === selectedTacticId);
+      if (found) setTactic({ ...found, isNew: false });
+    }
+  }
 
   const saveTacticNotes = useCallback(() => {
     setTactic(current => {
@@ -2497,7 +2581,10 @@ function TacticsView({ team, user, db, setDB, initialTacticId }) {
     const newList = (team.tactics || []).filter(x => x.id !== tid);
     const next = { ...db, teams: db.teams.map(t => t.id === team.id ? { ...t, tactics: newList } : t) };
     setDB(next); await storage.set(DB_KEY, next);
-    if (tactic.id === tid) setTactic(makeFresh("4-4-2"));
+    if (tactic.id === tid) {
+      if (newList.length) { setTactic({ ...newList[newList.length - 1], isNew: false }); onSelectTactic?.(newList[newList.length - 1].id); }
+      else { setTactic(makeFresh("4-4-2")); onSelectTactic?.(null); }
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -2505,8 +2592,13 @@ function TacticsView({ team, user, db, setDB, initialTacticId }) {
     setShowDeleteDialog(false);
   };
 
-  const newTactic = () => { if (!write) return; setTactic(makeFresh(tactic.formation || "4-4-2")); setShowSaved(false); };
-  const loadTactic = (t) => { setTactic({ ...t, isNew: false }); setShowSaved(false); };
+  const newTactic = () => {
+    if (!write) return;
+    setTactic(makeFresh(tactic.formation || "4-4-2"));
+    onSelectTactic?.(null);
+    setShowSaved(false);
+  };
+  const loadTactic = (t) => { setTactic({ ...t, isNew: false }); onSelectTactic?.(t.id); setShowSaved(false); };
   const playerById = (id) => team.players.find(p => p.id === id);
 
   // Sorted roster
@@ -2518,6 +2610,12 @@ function TacticsView({ team, user, db, setDB, initialTacticId }) {
     <div className="min-h-screen" style={{ background: "#020617" }}>
     <div className="px-2 pt-3 pb-6">
       {!write && <ReadOnlyBanner />}
+
+      <TacticStrip tactics={team.tactics || []} activeId={tactic.isNew ? null : tactic.id}
+        onSelect={(id) => {
+          const found = (team.tactics || []).find(t => t.id === id);
+          if (found) loadTactic(found);
+        }} />
 
       {/* ===== TOP BAR ===== */}
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
